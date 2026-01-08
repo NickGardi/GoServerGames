@@ -1,6 +1,6 @@
 package game
 
-import "1v1/internal/net"
+import "GoServerGames/internal/net"
 
 const (
 	WorldSize = 800.0

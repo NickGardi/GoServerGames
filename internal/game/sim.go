@@ -1,16 +1,16 @@
 package game
 
 import (
-	"1v1/internal/net"
+	"GoServerGames/internal/net"
 	"math"
 	"time"
 )
 
 const (
-	MoveSpeed     = 220.0 // units per second
+	MoveSpeed     = 450.0 // units per second - much faster
 	TickRate      = 60
 	TickDuration  = time.Second / TickRate
-	RoundResetMs  = 2000
+	RespawnDelayMs = 1000 // 1 second respawn delay
 	FireRateLimit = 3.0 // shots per second
 	MinFireDelay  = time.Second / time.Duration(FireRateLimit)
 	ShootRange    = 1000.0
@@ -45,6 +45,7 @@ type Room struct {
 	ResetTimer    time.Time
 	InputQueues   [2][]net.InputMessage
 	LastTickTime  time.Time
+	RespawnTimers [2]time.Time // Individual respawn timers per player
 }
 
 func NewRoom(id string) *Room {
@@ -97,11 +98,13 @@ func (r *Room) ProcessTick() {
 	}
 	r.LastTickTime = now
 
-	// Process reset timer
-	if r.RoundState == RoundEnded {
-		elapsed := time.Since(r.ResetTimer)
-		if elapsed >= RoundResetMs*time.Millisecond {
-			r.ResetRound()
+	// Process respawn timers for dead players
+	for i := 0; i < 2; i++ {
+		if r.Players[i] != nil && !r.Players[i].Alive && !r.RespawnTimers[i].IsZero() {
+			elapsed := time.Since(r.RespawnTimers[i])
+			if elapsed >= RespawnDelayMs*time.Millisecond {
+				r.RespawnPlayer(i)
+			}
 		}
 	}
 
@@ -227,10 +230,28 @@ func (r *Room) ProcessShoot(shooterIdx int) {
 		// Hit!
 		target.Alive = false
 		shooter.Score++
-		r.WinnerID = shooter.ID
-		r.RoundState = RoundEnded
-		r.ResetTimer = time.Now()
+		// Set respawn timer for dead player
+		targetIdx := 1 - shooterIdx
+		r.RespawnTimers[targetIdx] = time.Now()
 	}
+}
+
+func (r *Room) RespawnPlayer(playerIdx int) {
+	if playerIdx < 0 || playerIdx >= 2 || r.Players[playerIdx] == nil {
+		return
+	}
+	
+	player := r.Players[playerIdx]
+	player.X = SpawnPoints[playerIdx].X
+	player.Y = SpawnPoints[playerIdx].Y
+	if playerIdx == 0 {
+		player.Yaw = 45
+	} else {
+		player.Yaw = 225
+	}
+	player.Alive = true
+	player.LastShot = time.Time{}
+	r.RespawnTimers[playerIdx] = time.Time{} // Clear timer
 }
 
 func (r *Room) ResetRound() {
@@ -245,6 +266,7 @@ func (r *Room) ResetRound() {
 			}
 			r.Players[i].Alive = true
 			r.Players[i].LastShot = time.Time{}
+			r.RespawnTimers[i] = time.Time{}
 		}
 	}
 	r.RoundState = RoundPlaying
@@ -268,13 +290,7 @@ func (r *Room) GetSnap() net.SnapMessage {
 	}
 
 	resetInMs := 0
-	if r.RoundState == RoundEnded {
-		elapsed := time.Since(r.ResetTimer)
-		remaining := RoundResetMs*time.Millisecond - elapsed
-		if remaining > 0 {
-			resetInMs = int(remaining / time.Millisecond)
-		}
-	}
+	// No longer using round state for respawn, but keeping for compatibility
 
 	return net.SnapMessage{
 		Type:  "snap",

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Lobby - GoServerGames</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="dark-mode">
+    <div class="lobby-container">
+        <div class="lobby-header">
+            <h1>Game Lobby</h1>
+            <div id="playersList" class="players-list"></div>
+        </div>
+
+        <div id="readySection" class="ready-section" style="display: none;">
+            <div style="text-align: center;">
+                <button id="readyBtn" class="ready-btn">Ready</button>
+            </div>
+        </div>
+
+        <div class="game-selection">
+            <h2>Select a Game</h2>
+            <div class="games-grid">
+                <div class="game-card" data-game="speedtype">
+                    <div class="game-icon">⚡</div>
+                    <h3>Speed Type</h3>
+                    <p>Type words as fast as you can! First to 10 wins.</p>
+                    <div class="game-status" id="status-speedtype">
+                        <span class="status-text">Waiting for selection...</span>
+                    </div>
+                </div>
+
+                <div class="game-card disabled" data-game="game2">
+                    <div class="game-icon">🎮</div>
+                    <h3>Game 2</h3>
+                    <p>Coming soon...</p>
+                    <div class="game-status">
+                        <span class="status-text">Coming Soon</span>
+                    </div>
+                </div>
+
+                <div class="game-card disabled" data-game="game3">
+                    <div class="game-icon">🎯</div>
+                    <h3>Game 3</h3>
+                    <p>Coming soon...</p>
+                    <div class="game-status">
+                        <span class="status-text">Coming Soon</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/lobby.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Type - GoServerGames</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="dark-mode">
+    <div class="game-container speedtype">
+        <div class="game-header">
+            <div class="score-display">
+                <div class="player-score">
+                    <span class="player-name" id="player1Name">Player 1</span>
+                    <span class="score-value" id="player1Score">0</span>
+                </div>
+                <div class="vs">vs</div>
+                <div class="player-score">
+                    <span class="player-name" id="player2Name">Player 2</span>
+                    <span class="score-value" id="player2Score">0</span>
+                </div>
+            </div>
+            <div class="target-score">First to <strong>10</strong> wins!</div>
+        </div>
+
+        <div class="game-area">
+            <div class="word-display" id="wordDisplay">
+                <div class="word-label">Type this word:</div>
+                <div class="word-text" id="wordText">Loading...</div>
+            </div>
+
+            <div class="input-area">
+                <input 
+                    type="text" 
+                    id="wordInput" 
+                    class="word-input" 
+                    placeholder="Type the word here..."
+                    autocomplete="off"
+                    spellcheck="false"
+                >
+                <div class="input-hint">Press Enter to submit</div>
+            </div>
+
+            <div class="results-area" id="resultsArea" style="display: none;">
+                <div class="result-card" id="resultCard">
+                    <div class="result-title">Round Results</div>
+                    <div class="result-times">
+                        <div class="time-result">
+                            <span class="time-label">You:</span>
+                            <span class="time-value" id="yourTime">0.00s</span>
+                        </div>
+                        <div class="time-result">
+                            <span class="time-label">Opponent:</span>
+                            <span class="time-value" id="opponentTime">0.00s</span>
+                        </div>
+                    </div>
+                    <div class="result-winner" id="resultWinner"></div>
+                    <button id="readyNextRoundBtn" class="ready-next-round-btn" style="display: none;">
+                        Ready for Next Round
+                    </button>
+                    <div class="next-round" id="nextRoundBtn" style="display: none;">
+                        Next Round Starting...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-status-overlay" id="statusOverlay">
+            <div class="status-message" id="statusMessage">Waiting for opponent...</div>
+        </div>
+    </div>
+
+    <script src="/js/speedtype.js"></script>
+</body>
+</html>
+

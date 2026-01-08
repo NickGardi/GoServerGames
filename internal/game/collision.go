@@ -1,8 +1,8 @@
 package game
 
-import "1v1/internal/net"
+import "GoServerGames/internal/net"
 
-const PlayerRadius = 12.0
+const PlayerRadius = 24.0 // Doubled size
 
 // CheckWallCollision checks if a circle at (x,y) with radius r collides with any wall
 func CheckWallCollision(x, y, r float32, walls []net.Wall) bool {

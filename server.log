@@ -1,0 +1,6 @@
+2026/01/07 10:55:56 Serving static files from: web
+2026/01/07 10:55:56 Server starting on :8080
+2026/01/07 10:55:56 WebSocket endpoint: ws://localhost:8080/ws
+2026/01/07 10:55:56 Web interface: http://localhost:8080
+2026/01/07 10:55:56 Server error:listen tcp :8080: bind: address already in use
+exit status 1
