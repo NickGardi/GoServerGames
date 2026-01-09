@@ -6,11 +6,12 @@ class ClickSpeedClient {
         this.currentState = null;
         this.startTime = null;
         this.roundActive = false;
-        this.countdownActive = false;
+        this.waitingForTarget = false;
         this.hasClicked = false;
         this.scores = { player1: 0, player2: 0 };
         this.playerIDs = { player1: null, player2: null };
         this.playerNames = { player1: 'You', player2: 'Opponent' };
+        this.pendingTarget = null;
         
         this.connect();
     }
@@ -25,6 +26,7 @@ class ClickSpeedClient {
 
         this.ws.onmessage = (event) => {
             const msg = JSON.parse(event.data);
+            console.log('Received message:', msg.type, msg.state);
             this.handleMessage(msg);
         };
 
@@ -54,6 +56,8 @@ class ClickSpeedClient {
     }
 
     handleGameState(msg) {
+        console.log('Game state:', msg.state, 'roundActive:', this.roundActive, 'waitingForTarget:', this.waitingForTarget);
+        
         // Update scores and player names
         if (msg.scores) {
             msg.scores.forEach(score => {
@@ -73,73 +77,73 @@ class ClickSpeedClient {
             });
         }
 
-        // Handle state transitions
-        if (msg.state !== this.currentState) {
-            this.currentState = msg.state;
+        const prevState = this.currentState;
+        this.currentState = msg.state;
 
-            switch (msg.state) {
-                case 'waiting':
-                    if (document.getElementById('gameSummary').style.display !== 'block') {
-                        this.showStatusOverlay('Waiting for opponent...');
-                    }
-                    this.countdownActive = false;
-                    break;
-                case 'ready':
-                    this.hideStatusOverlay();
-                    this.hideTarget();
-                    this.hideResults();
-                    this.hasClicked = false;
-                    this.roundActive = false;
-                    this.countdownActive = false;
-                    this.showStatusOverlay('Get ready! Target appearing soon...');
-                    break;
-                case 'playing':
-                    if (!this.roundActive && !this.countdownActive) {
-                        this.showCountdownBeforeRound(msg.targetX, msg.targetY, msg.radius);
-                    }
-                    break;
-                case 'results':
-                    this.countdownActive = false;
-                    this.roundActive = false;
-                    if (msg.roundResult) {
-                        this.showResults(msg.roundResult);
-                    }
-                    break;
-            }
-        } else if (msg.state === 'playing' && !this.roundActive && !this.countdownActive) {
-            this.showCountdownBeforeRound(msg.targetX, msg.targetY, msg.radius);
+        switch (msg.state) {
+            case 'waiting':
+                this.showStatusOverlay('Waiting for opponent...');
+                break;
+                
+            case 'ready':
+                this.hideTarget();
+                this.hideResults();
+                this.hasClicked = false;
+                this.roundActive = false;
+                this.waitingForTarget = false;
+                this.showStatusOverlay('Get ready...');
+                break;
+                
+            case 'playing':
+                // Only start the round if we haven't already
+                if (!this.roundActive && !this.waitingForTarget) {
+                    this.pendingTarget = {
+                        x: msg.targetX,
+                        y: msg.targetY,
+                        radius: msg.radius
+                    };
+                    this.startWaitingForTarget();
+                }
+                break;
+                
+            case 'results':
+                this.roundActive = false;
+                this.waitingForTarget = false;
+                if (msg.roundResult) {
+                    this.showResults(msg.roundResult);
+                }
+                break;
         }
     }
 
-    showCountdownBeforeRound(targetX, targetY, radius) {
-        if (this.countdownActive) return;
+    startWaitingForTarget() {
+        if (this.waitingForTarget) return;
         
-        this.countdownActive = true;
+        this.waitingForTarget = true;
         this.hideTarget();
         this.hideResults();
+        this.showStatusOverlay('Get ready... target appearing soon!');
         
-        let countdown = 3;
-        this.showStatusOverlay(`Starting in ${countdown}...`);
+        // Random delay between 2-4 seconds
+        const delay = 2000 + Math.random() * 2000;
+        console.log('Target will appear in', delay, 'ms');
         
-        const countdownInterval = setInterval(() => {
-            countdown--;
-            if (countdown > 0) {
-                this.showStatusOverlay(`Starting in ${countdown}...`);
-            } else {
-                clearInterval(countdownInterval);
-                this.hideStatusOverlay();
-                this.countdownActive = false;
-                this.startRound(targetX, targetY, radius);
+        setTimeout(() => {
+            if (this.currentState === 'playing' && !this.roundActive) {
+                this.showTarget(this.pendingTarget.x, this.pendingTarget.y, this.pendingTarget.radius);
             }
-        }, 1000);
+        }, delay);
     }
 
-    startRound(targetX, targetY, radius) {
+    showTarget(targetX, targetY, radius) {
+        console.log('Showing target at', targetX, targetY);
         this.roundActive = true;
+        this.waitingForTarget = false;
         this.hasClicked = false;
         this.startTime = Date.now();
         
-        // Show target
+        this.hideStatusOverlay();
+        
         const target = document.getElementById('target');
         const arena = document.getElementById('clickArena');
         
@@ -173,6 +177,7 @@ class ClickSpeedClient {
         
         this.hasClicked = true;
         const timeMs = Date.now() - this.startTime;
+        console.log('Clicked! Time:', timeMs, 'ms');
         
         // Visual feedback
         const target = document.getElementById('target');
@@ -193,10 +198,6 @@ class ClickSpeedClient {
         }, 300);
     }
 
-    showTarget() {
-        document.getElementById('target').style.display = 'block';
-    }
-
     hideTarget() {
         const target = document.getElementById('target');
         target.style.display = 'none';
@@ -205,6 +206,7 @@ class ClickSpeedClient {
 
     showResults(result) {
         this.roundActive = false;
+        this.waitingForTarget = false;
         this.hideStatusOverlay();
         this.hideTarget();
         
@@ -327,4 +329,3 @@ class ClickSpeedClient {
 window.addEventListener('DOMContentLoaded', () => {
     window.clickSpeedClient = new ClickSpeedClient();
 });
-

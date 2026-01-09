@@ -531,7 +531,7 @@ func (m *Matchmaking) startSpeedTypeGame(room *game.SpeedTypeRoom, p1, p2 *Lobby
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	maxRounds := 10
+	maxRounds := 2
 	
 	// Start rounds
 	for round := 1; round <= maxRounds; round++ {
@@ -622,7 +622,7 @@ func (m *Matchmaking) startMathSprintGame(room *game.MathSprintRoom, p1, p2 *Lob
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	maxRounds := 10
+	maxRounds := 2
 	
 	for round := 1; round <= maxRounds; round++ {
 		room.StartRound()
@@ -734,7 +734,7 @@ func (m *Matchmaking) startClickSpeedGame(room *game.ClickSpeedRoom, p1, p2 *Lob
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	maxRounds := 10
+	maxRounds := 2
 	
 	for round := 1; round <= maxRounds; round++ {
 		room.StartRound()
