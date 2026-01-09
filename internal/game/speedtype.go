@@ -6,12 +6,35 @@ import (
 	"time"
 )
 
-// Common words for Speed Type game
+// Challenging words for Speed Type game (minimum 6 letters)
 var SpeedTypeWords = []string{
-	"hello", "world", "quick", "brown", "fox", "jumps", "lazy", "dog",
-	"speed", "type", "challenge", "keyboard", "typing", "skill", "test",
-	"computer", "mouse", "screen", "keyboard", "button", "click", "enter",
-	"practice", "improve", "accuracy", "words", "random", "select", "game",
+	// Common but tricky
+	"keyboard", "challenge", "practice", "computer", "accuracy", "improve",
+	"quickly", "through", "another", "because", "between", "different",
+	"important", "question", "business", "government", "development",
+	// Technical terms
+	"algorithm", "database", "interface", "variable", "function", "parameter",
+	"software", "hardware", "network", "protocol", "encryption", "authentication",
+	"framework", "repository", "deployment", "integration", "configuration",
+	// Longer words
+	"accomplished", "acknowledge", "approximately", "architectural", "battlefield",
+	"bureaucracy", "catastrophe", "circumstance", "collaboration", "communication",
+	"comprehensive", "consciousness", "consequence", "contemporary", "contribution",
+	"controversial", "determination", "disappointment", "discrimination", "effectiveness",
+	// Tricky spelling
+	"necessary", "definitely", "separate", "occurrence", "accommodate", "millennium",
+	"recommend", "persistence", "maintenance", "surveillance", "mischievous",
+	"conscientious", "entrepreneur", "pharmaceutical", "photosynthesis", "psychological",
+	// Programming related
+	"javascript", "typescript", "concurrent", "asynchronous", "middleware",
+	"microservice", "kubernetes", "containerization", "virtualization", "infrastructure",
+	"optimization", "performance", "scalability", "reliability", "availability",
+	// Mixed difficulty
+	"achievement", "advertisement", "appropriate", "atmosphere", "characteristic",
+	"demonstrate", "environment", "experience", "extraordinary", "fundamental",
+	"imagination", "independent", "investigation", "opportunity", "organization",
+	"particularly", "professional", "relationship", "responsibility", "significant",
+	"temperature", "understanding", "unfortunately", "immediately", "occasionally",
 }
 
 type SpeedTypePlayer struct {
@@ -285,8 +308,8 @@ func (r *SpeedTypeRoom) recordRoundHistory() {
 }
 
 func (r *SpeedTypeRoom) CheckGameEnd() bool {
-	// Game ends after 2 rounds or if explicitly marked as ended
-	return r.RoundNumber >= 2 || r.GameEnded
+	// Game ends after 10 rounds or if explicitly marked as ended
+	return r.RoundNumber >= 10 || r.GameEnded
 }
 
 func (r *SpeedTypeRoom) GetGameSummary() *GameSummary {

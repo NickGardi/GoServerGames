@@ -437,7 +437,7 @@ func (m *Matchmaking) startSpeedTypeGame(room *game.SpeedTypeRoom, p1, p2 *Lobby
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	maxRounds := 2
+	maxRounds := 10
 	
 	// Start rounds
 	for round := 1; round <= maxRounds; round++ {
@@ -782,6 +782,32 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 			m.broadcastLobbyUpdateUnlocked()
 			break
 		}
+	}
+	
+	// Clean up ended game rooms where both players have disconnected
+	for roomID, room := range m.speedTypeRooms {
+		if room.GameEnded {
+			// Check if any players still connected
+			anyConnected := false
+			for _, player := range room.Players {
+				if player != nil {
+					if _, ok := m.connections[player.ID]; ok {
+						anyConnected = true
+						break
+					}
+				}
+			}
+			if !anyConnected {
+				delete(m.speedTypeRooms, roomID)
+				log.Printf("Cleaned up ended game room %s", roomID)
+			}
+		}
+	}
+	
+	// Reset player IDs when lobby is empty and no active games
+	if len(m.lobby) == 0 && len(m.connections) == 0 {
+		m.nextPlayerID = 1
+		log.Printf("Reset player ID counter to 1")
 	}
 }
 

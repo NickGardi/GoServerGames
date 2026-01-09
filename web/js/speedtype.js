@@ -429,15 +429,15 @@ class SpeedTypeClient {
             roundsList.appendChild(roundDiv);
         });
         
-        // Setup finish button - returns to login page
-        const finishBtn = document.getElementById('finishGameBtn');
-        if (finishBtn) {
-            finishBtn.onclick = () => {
-                // Close WebSocket and redirect to login
+        // Setup back to lobby button
+        const backBtn = document.getElementById('backToLobbyBtn');
+        if (backBtn) {
+            backBtn.onclick = () => {
+                // Close WebSocket and redirect to lobby
                 if (this.ws) {
                     this.ws.close();
                 }
-                window.location.replace('/');
+                window.location.replace('/lobby.html');
             };
         }
     }
