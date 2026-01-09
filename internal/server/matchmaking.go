@@ -10,14 +10,16 @@ import (
 )
 
 type Matchmaking struct {
-	lobby          []*LobbyPlayer
-	rooms          map[string]*game.Room
-	speedTypeRooms map[string]*game.SpeedTypeRoom
-	connections    map[int]*Connection // Map player ID to active connection
-	nextRoomID     int
-	nextPlayerID   int
-	selectedBy     *net.SelectedBy // Track who selected the game
-	mu             sync.Mutex
+	lobby           []*LobbyPlayer
+	rooms           map[string]*game.Room
+	speedTypeRooms  map[string]*game.SpeedTypeRoom
+	mathSprintRooms map[string]*game.MathSprintRoom
+	clickSpeedRooms map[string]*game.ClickSpeedRoom
+	connections     map[int]*Connection // Map player ID to active connection
+	nextRoomID      int
+	nextPlayerID    int
+	selectedBy      *net.SelectedBy // Track who selected the game
+	mu              sync.Mutex
 }
 
 type LobbyPlayer struct {
@@ -30,12 +32,14 @@ type LobbyPlayer struct {
 
 func NewMatchmaking() *Matchmaking {
 	return &Matchmaking{
-		lobby:          make([]*LobbyPlayer, 0),
-		rooms:          make(map[string]*game.Room),
-		speedTypeRooms: make(map[string]*game.SpeedTypeRoom),
-		connections:    make(map[int]*Connection),
-		nextPlayerID:   1,
-		nextRoomID:     1,
+		lobby:           make([]*LobbyPlayer, 0),
+		rooms:           make(map[string]*game.Room),
+		speedTypeRooms:  make(map[string]*game.SpeedTypeRoom),
+		mathSprintRooms: make(map[string]*game.MathSprintRoom),
+		clickSpeedRooms: make(map[string]*game.ClickSpeedRoom),
+		connections:     make(map[int]*Connection),
+		nextPlayerID:    1,
+		nextRoomID:      1,
 	}
 }
 
@@ -59,17 +63,56 @@ func (m *Matchmaking) AddPlayer(name string, conn *Connection) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if player is in an active game room (reconnection after redirect)
+	// Check if player is in an active Speed Type game room (reconnection after redirect)
 	for _, room := range m.speedTypeRooms {
 		if room.CheckGameEnd() {
 			continue
 		}
 		for _, player := range room.Players {
 			if player != nil && player.Name == name {
-				// Found player in active game - reconnect them
-				log.Printf("Reconnecting player %s (ID %d) to game room %s", name, player.ID, room.ID)
+				log.Printf("Reconnecting player %s (ID %d) to speed type room %s", name, player.ID, room.ID)
 				conn.playerID = player.ID
 				conn.speedTypeRoom = room
+				m.connections[player.ID] = conn
+				player.Connected = true
+				
+				conn.SendWelcome(player.ID, room.ID, nil)
+				conn.SendMessage(room.GetState())
+				return player.ID
+			}
+		}
+	}
+
+	// Check if player is in an active Math Sprint game room (reconnection after redirect)
+	for _, room := range m.mathSprintRooms {
+		if room.CheckGameEnd() {
+			continue
+		}
+		for _, player := range room.Players {
+			if player != nil && player.Name == name {
+				log.Printf("Reconnecting player %s (ID %d) to math sprint room %s", name, player.ID, room.ID)
+				conn.playerID = player.ID
+				conn.mathSprintRoom = room
+				m.connections[player.ID] = conn
+				player.Connected = true
+				
+				conn.SendWelcome(player.ID, room.ID, nil)
+				conn.SendMessage(room.GetState())
+				return player.ID
+			}
+		}
+	}
+
+	// Check if player is in an active Click Speed game room (reconnection after redirect)
+	for _, room := range m.clickSpeedRooms {
+		if room.CheckGameEnd() {
+			continue
+		}
+		for _, player := range room.Players {
+			if player != nil && player.Name == name {
+				log.Printf("Reconnecting player %s (ID %d) to click speed room %s", name, player.ID, room.ID)
+				conn.playerID = player.ID
+				conn.clickSpeedRoom = room
 				m.connections[player.ID] = conn
 				player.Connected = true
 				
@@ -386,43 +429,94 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string) {
 		room.AddPlayer(p1.PlayerID, p1.Name)
 		room.AddPlayer(p2.PlayerID, p2.Name)
 
-		// Store room and assign to connections BEFORE sending messages
 		m.speedTypeRooms[roomID] = room
 		conn1.speedTypeRoom = room
 		conn2.speedTypeRoom = room
 		
-		// Mark both players as connected in the room immediately
 		for _, player := range room.Players {
 			if player != nil {
 				player.Connected = true
-				log.Printf("Marked player %d (%s) as connected in room", player.ID, player.Name)
 			}
 		}
 
-		// Send game start messages
 		gameStartMsg := net.GameStartMessage{
 			Type:     "gameStart",
 			GameType: gameType,
 			RoomID:   roomID,
 		}
 		
-		log.Printf("Sending gameStart to player %d (%s)", p1.PlayerID, p1.Name)
 		conn1.SendMessage(gameStartMsg)
-		
-		log.Printf("Sending gameStart to player %d (%s)", p2.PlayerID, p2.Name)
 		conn2.SendMessage(gameStartMsg)
 		
-		// Give messages time to be sent before clearing lobby
-		// The writePump processes messages asynchronously, so we need enough time
 		time.Sleep(200 * time.Millisecond)
-
-		// Clear selected game tracking and lobby AFTER sending messages
 		m.selectedBy = nil
 		m.lobby = make([]*LobbyPlayer, 0)
 
-		// Start game loop for Speed Type
-		log.Printf("Starting speed type game loop for room %s", roomID)
+		log.Printf("Starting speed type game for room %s", roomID)
 		go m.startSpeedTypeGame(room, p1, p2)
+
+	case "mathsprint":
+		room := game.NewMathSprintRoom(roomID)
+		room.AddPlayer(p1.PlayerID, p1.Name)
+		room.AddPlayer(p2.PlayerID, p2.Name)
+
+		m.mathSprintRooms[roomID] = room
+		conn1.mathSprintRoom = room
+		conn2.mathSprintRoom = room
+		
+		for _, player := range room.Players {
+			if player != nil {
+				player.Connected = true
+			}
+		}
+
+		gameStartMsg := net.GameStartMessage{
+			Type:     "gameStart",
+			GameType: gameType,
+			RoomID:   roomID,
+		}
+		
+		conn1.SendMessage(gameStartMsg)
+		conn2.SendMessage(gameStartMsg)
+		
+		time.Sleep(200 * time.Millisecond)
+		m.selectedBy = nil
+		m.lobby = make([]*LobbyPlayer, 0)
+
+		log.Printf("Starting math sprint game for room %s", roomID)
+		go m.startMathSprintGame(room, p1, p2)
+
+	case "clickspeed":
+		room := game.NewClickSpeedRoom(roomID)
+		room.AddPlayer(p1.PlayerID, p1.Name)
+		room.AddPlayer(p2.PlayerID, p2.Name)
+
+		m.clickSpeedRooms[roomID] = room
+		conn1.clickSpeedRoom = room
+		conn2.clickSpeedRoom = room
+		
+		for _, player := range room.Players {
+			if player != nil {
+				player.Connected = true
+			}
+		}
+
+		gameStartMsg := net.GameStartMessage{
+			Type:     "gameStart",
+			GameType: gameType,
+			RoomID:   roomID,
+		}
+		
+		conn1.SendMessage(gameStartMsg)
+		conn2.SendMessage(gameStartMsg)
+		
+		time.Sleep(200 * time.Millisecond)
+		m.selectedBy = nil
+		m.lobby = make([]*LobbyPlayer, 0)
+
+		log.Printf("Starting click speed game for room %s", roomID)
+		go m.startClickSpeedGame(room, p1, p2)
+
 	default:
 		log.Printf("Unknown game type: %s", gameType)
 	}
@@ -513,10 +607,231 @@ func (m *Matchmaking) sendGameSummary(room *game.SpeedTypeRoom) {
 		conn.SendMessage(summaryMsg)
 	}
 	
-	// Mark the room as ended - players will click "Finish" button to leave
-	// The room will be cleaned up when players disconnect
+	// Mark the room as ended - players will click button to leave
 	room.GameEnded = true
-	log.Printf("Game room %s marked as ended. Players can click Finish to return to login.", room.ID)
+	log.Printf("Speed type room %s marked as ended", room.ID)
+}
+
+// Math Sprint game functions
+
+func (m *Matchmaking) startMathSprintGame(room *game.MathSprintRoom, p1, p2 *LobbyPlayer) {
+	time.Sleep(2 * time.Second)
+	
+	log.Printf("Math sprint game loop starting for room %s", room.ID)
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	maxRounds := 10
+	
+	for round := 1; round <= maxRounds; round++ {
+		room.StartRound()
+		log.Printf("Math sprint round %d/%d for room %s", round, maxRounds, room.ID)
+
+		m.broadcastMathSprintState(room)
+
+		for room.State != "results" {
+			<-ticker.C
+			m.broadcastMathSprintState(room)
+		}
+
+		log.Printf("Math sprint round %d complete", round)
+		m.broadcastMathSprintState(room)
+
+		if round >= maxRounds {
+			log.Printf("Math sprint game complete after %d rounds", maxRounds)
+			m.sendMathGameSummary(room)
+			return
+		}
+
+		time.Sleep(3 * time.Second)
+		room.ResetReadyForNext()
+		room.State = "ready"
+	}
+	
+	log.Printf("Math sprint game loop ended for room %s", room.ID)
+}
+
+func (m *Matchmaking) sendMathGameSummary(room *game.MathSprintRoom) {
+	summary := room.GetGameSummary()
+	if summary == nil {
+		log.Printf("ERROR: GetGameSummary returned nil for math sprint!")
+		return
+	}
+	
+	summaryMsg := &net.MathGameSummaryMessage{
+		Type:           "mathGameSummary",
+		Player1ID:      summary.Player1ID,
+		Player1Name:    summary.Player1Name,
+		Player1Score:   summary.Player1Score,
+		Player1AvgTime: summary.Player1AvgTime,
+		Player2ID:      summary.Player2ID,
+		Player2Name:    summary.Player2Name,
+		Player2Score:   summary.Player2Score,
+		Player2AvgTime: summary.Player2AvgTime,
+		WinnerID:       summary.WinnerID,
+		RoundHistory:   make([]net.MathRoundHistoryData, len(summary.RoundHistory)),
+	}
+	for i, rh := range summary.RoundHistory {
+		summaryMsg.RoundHistory[i] = net.MathRoundHistoryData{
+			RoundNumber:   rh.RoundNumber,
+			Player1TimeMs: rh.Player1TimeMs,
+			Player2TimeMs: rh.Player2TimeMs,
+			WinnerID:      rh.WinnerID,
+			Question:      rh.Question,
+			Answer:        rh.Answer,
+		}
+	}
+	
+	m.mu.Lock()
+	conns := m.getMathRoomConnectionsUnlocked(room)
+	m.mu.Unlock()
+	
+	log.Printf("Sending math game summary to %d connections", len(conns))
+	for _, conn := range conns {
+		conn.SendMessage(summaryMsg)
+	}
+	
+	room.GameEnded = true
+	log.Printf("Math sprint room %s marked as ended", room.ID)
+}
+
+func (m *Matchmaking) broadcastMathSprintState(room *game.MathSprintRoom) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	state := room.GetState()
+	for _, player := range room.Players {
+		if player != nil {
+			if conn, ok := m.connections[player.ID]; ok && conn != nil {
+				if conn.mathSprintRoom == room {
+					conn.SendMessage(state)
+				}
+			}
+		}
+	}
+}
+
+func (m *Matchmaking) getMathRoomConnectionsUnlocked(room *game.MathSprintRoom) []*Connection {
+	var conns []*Connection
+	for _, player := range room.Players {
+		if player != nil {
+			if conn, ok := m.connections[player.ID]; ok && conn != nil && conn.mathSprintRoom == room {
+				conns = append(conns, conn)
+			}
+		}
+	}
+	return conns
+}
+
+// Click Speed game functions
+
+func (m *Matchmaking) startClickSpeedGame(room *game.ClickSpeedRoom, p1, p2 *LobbyPlayer) {
+	time.Sleep(2 * time.Second)
+	
+	log.Printf("Click speed game loop starting for room %s", room.ID)
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	maxRounds := 10
+	
+	for round := 1; round <= maxRounds; round++ {
+		room.StartRound()
+		log.Printf("Click speed round %d/%d for room %s", round, maxRounds, room.ID)
+
+		m.broadcastClickSpeedState(room)
+
+		for room.State != "results" {
+			<-ticker.C
+			m.broadcastClickSpeedState(room)
+		}
+
+		log.Printf("Click speed round %d complete", round)
+		m.broadcastClickSpeedState(room)
+
+		if round >= maxRounds {
+			log.Printf("Click speed game complete after %d rounds", maxRounds)
+			m.sendClickGameSummary(room)
+			return
+		}
+
+		time.Sleep(3 * time.Second)
+		room.ResetReadyForNext()
+		room.State = "ready"
+	}
+	
+	log.Printf("Click speed game loop ended for room %s", room.ID)
+}
+
+func (m *Matchmaking) sendClickGameSummary(room *game.ClickSpeedRoom) {
+	summary := room.GetGameSummary()
+	if summary == nil {
+		log.Printf("ERROR: GetGameSummary returned nil for click speed!")
+		return
+	}
+	
+	summaryMsg := &net.ClickGameSummaryMessage{
+		Type:           "clickGameSummary",
+		Player1ID:      summary.Player1ID,
+		Player1Name:    summary.Player1Name,
+		Player1Score:   summary.Player1Score,
+		Player1AvgTime: summary.Player1AvgTime,
+		Player2ID:      summary.Player2ID,
+		Player2Name:    summary.Player2Name,
+		Player2Score:   summary.Player2Score,
+		Player2AvgTime: summary.Player2AvgTime,
+		WinnerID:       summary.WinnerID,
+		RoundHistory:   make([]net.ClickRoundHistoryData, len(summary.RoundHistory)),
+	}
+	for i, rh := range summary.RoundHistory {
+		summaryMsg.RoundHistory[i] = net.ClickRoundHistoryData{
+			RoundNumber:   rh.RoundNumber,
+			Player1TimeMs: rh.Player1TimeMs,
+			Player2TimeMs: rh.Player2TimeMs,
+			WinnerID:      rh.WinnerID,
+		}
+	}
+	
+	m.mu.Lock()
+	conns := m.getClickRoomConnectionsUnlocked(room)
+	m.mu.Unlock()
+	
+	log.Printf("Sending click game summary to %d connections", len(conns))
+	for _, conn := range conns {
+		conn.SendMessage(summaryMsg)
+	}
+	
+	room.GameEnded = true
+	log.Printf("Click speed room %s marked as ended", room.ID)
+}
+
+func (m *Matchmaking) broadcastClickSpeedState(room *game.ClickSpeedRoom) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	state := room.GetState()
+	for _, player := range room.Players {
+		if player != nil {
+			if conn, ok := m.connections[player.ID]; ok && conn != nil {
+				if conn.clickSpeedRoom == room {
+					conn.SendMessage(state)
+				}
+			}
+		}
+	}
+}
+
+func (m *Matchmaking) getClickRoomConnectionsUnlocked(room *game.ClickSpeedRoom) []*Connection {
+	var conns []*Connection
+	for _, player := range room.Players {
+		if player != nil {
+			if conn, ok := m.connections[player.ID]; ok && conn != nil && conn.clickSpeedRoom == room {
+				conns = append(conns, conn)
+			}
+		}
+	}
+	return conns
 }
 
 func (m *Matchmaking) restartSpeedTypeGame(room *game.SpeedTypeRoom) {
@@ -784,10 +1099,9 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 		}
 	}
 	
-	// Clean up ended game rooms where both players have disconnected
+	// Clean up ended speed type rooms where both players have disconnected
 	for roomID, room := range m.speedTypeRooms {
 		if room.GameEnded {
-			// Check if any players still connected
 			anyConnected := false
 			for _, player := range room.Players {
 				if player != nil {
@@ -799,7 +1113,45 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 			}
 			if !anyConnected {
 				delete(m.speedTypeRooms, roomID)
-				log.Printf("Cleaned up ended game room %s", roomID)
+				log.Printf("Cleaned up ended speed type room %s", roomID)
+			}
+		}
+	}
+	
+	// Clean up ended math sprint rooms where both players have disconnected
+	for roomID, room := range m.mathSprintRooms {
+		if room.GameEnded {
+			anyConnected := false
+			for _, player := range room.Players {
+				if player != nil {
+					if _, ok := m.connections[player.ID]; ok {
+						anyConnected = true
+						break
+					}
+				}
+			}
+			if !anyConnected {
+				delete(m.mathSprintRooms, roomID)
+				log.Printf("Cleaned up ended math sprint room %s", roomID)
+			}
+		}
+	}
+	
+	// Clean up ended click speed rooms where both players have disconnected
+	for roomID, room := range m.clickSpeedRooms {
+		if room.GameEnded {
+			anyConnected := false
+			for _, player := range room.Players {
+				if player != nil {
+					if _, ok := m.connections[player.ID]; ok {
+						anyConnected = true
+						break
+					}
+				}
+			}
+			if !anyConnected {
+				delete(m.clickSpeedRooms, roomID)
+				log.Printf("Cleaned up ended click speed room %s", roomID)
 			}
 		}
 	}

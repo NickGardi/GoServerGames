@@ -111,30 +111,27 @@ class LobbyClient {
                 this.handleGameSelection(msg);
                 break;
             case 'gameStart':
-                // Auto-redirect when game starts
-                console.log('=== GAME START MESSAGE RECEIVED ===');
-                console.log('Full message:', JSON.stringify(msg, null, 2));
-                console.log('Game type:', msg.gameType);
-                console.log('Room ID:', msg.roomId);
-                
-                if (msg.gameType === 'speedtype') {
-                    console.log('Redirecting to speed type game immediately...');
-                    // Close WebSocket connection before redirecting to prevent interference
-                    if (this.ws) {
-                        console.log('Closing WebSocket connection before redirect');
-                        this.ws.close();
-                    }
-                    // Force immediate redirect - don't wait for anything
-                    console.log('Calling window.location.replace...');
-                    window.location.replace('/speedtype.html');
+                console.log('Game starting:', msg.gameType);
+                if (this.ws) {
+                    this.ws.close();
+                }
+                // Redirect based on game type
+                const gamePages = {
+                    'speedtype': '/speedtype.html',
+                    'mathsprint': '/mathsprint.html',
+                    'clickspeed': '/clickspeed.html'
+                };
+                const page = gamePages[msg.gameType];
+                if (page) {
+                    window.location.replace(page);
                 } else {
-                    console.error('Unknown game type in gameStart:', msg.gameType);
+                    console.error('Unknown game type:', msg.gameType);
                 }
                 break;
             case 'speedTypeState':
-                // Ignore game state messages when in lobby - these shouldn't be sent but handle gracefully
-                // If we receive this, it means server thinks we're in a game, but we're in lobby
-                // Just ignore it
+            case 'mathSprintState':
+            case 'clickSpeedState':
+                // Ignore game state messages when in lobby
                 break;
             default:
                 console.log('Unknown message type:', msg.type);
@@ -157,13 +154,21 @@ class LobbyClient {
         
         console.log('Updated lobby state - players:', this.players.length, 'selectedGame:', this.selectedGame, 'selectedBy:', this.selectedBy, 'state:', lobbyState);
         
-        // Check if game is starting - redirect if we see "starting" state
-        if (lobbyState === 'starting' && this.selectedGame === 'speedtype') {
-            console.log('Lobby state is "starting", redirecting to game immediately...');
-            setTimeout(() => {
-                window.location.replace('/speedtype.html');
-            }, 100);
-            return;
+        // Check if game is starting - redirect based on selected game
+        if (lobbyState === 'starting' && this.selectedGame) {
+            const gamePages = {
+                'speedtype': '/speedtype.html',
+                'mathsprint': '/mathsprint.html',
+                'clickspeed': '/clickspeed.html'
+            };
+            const page = gamePages[this.selectedGame];
+            if (page) {
+                console.log('Game starting, redirecting to:', page);
+                setTimeout(() => {
+                    window.location.replace(page);
+                }, 100);
+                return;
+            }
         }
         
         // Update players list

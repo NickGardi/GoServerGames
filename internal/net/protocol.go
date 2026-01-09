@@ -164,3 +164,108 @@ type GameSummaryMessage struct {
 	WinnerID      int               `json:"winnerId"`
 	RoundHistory  []RoundHistoryData `json:"roundHistory"`
 }
+
+// Math Sprint messages
+
+type MathSprintSubmitMessage struct {
+	Type   string  `json:"type"`
+	Answer int     `json:"answer"`
+	TimeMs float64 `json:"timeMs"`
+}
+
+type MathSprintStateMessage struct {
+	Type        string             `json:"type"`
+	Question    string             `json:"question"`
+	Answer      int                `json:"answer,omitempty"` // Only sent in results
+	State       string             `json:"state"`
+	Scores      []MathSprintScore  `json:"scores"`
+	RoundResult *MathSprintResult  `json:"roundResult,omitempty"`
+}
+
+type MathSprintScore struct {
+	PlayerID int     `json:"playerId"`
+	Name     string  `json:"name"`
+	Score    int     `json:"score"`
+	TimeMs   float64 `json:"timeMs,omitempty"`
+}
+
+type MathSprintResult struct {
+	WinnerID      int     `json:"winnerId"`
+	Player1TimeMs float64 `json:"player1TimeMs"`
+	Player2TimeMs float64 `json:"player2TimeMs"`
+	CorrectAnswer int     `json:"correctAnswer"`
+}
+
+type MathRoundHistoryData struct {
+	RoundNumber   int     `json:"roundNumber"`
+	Player1TimeMs float64 `json:"player1TimeMs"`
+	Player2TimeMs float64 `json:"player2TimeMs"`
+	WinnerID      int     `json:"winnerId"`
+	Question      string  `json:"question"`
+	Answer        int     `json:"answer"`
+}
+
+type MathGameSummaryMessage struct {
+	Type           string                 `json:"type"`
+	Player1ID      int                    `json:"player1Id"`
+	Player1Name    string                 `json:"player1Name"`
+	Player1Score   int                    `json:"player1Score"`
+	Player1AvgTime float64                `json:"player1AvgTime"`
+	Player2ID      int                    `json:"player2Id"`
+	Player2Name    string                 `json:"player2Name"`
+	Player2Score   int                    `json:"player2Score"`
+	Player2AvgTime float64                `json:"player2AvgTime"`
+	WinnerID       int                    `json:"winnerId"`
+	RoundHistory   []MathRoundHistoryData `json:"roundHistory"`
+}
+
+// Click Speed messages
+
+type ClickSpeedSubmitMessage struct {
+	Type   string  `json:"type"`
+	TimeMs float64 `json:"timeMs"`
+}
+
+type ClickSpeedStateMessage struct {
+	Type        string             `json:"type"`
+	TargetX     float64            `json:"targetX"`
+	TargetY     float64            `json:"targetY"`
+	Radius      float64            `json:"radius"`
+	State       string             `json:"state"`
+	Scores      []ClickSpeedScore  `json:"scores"`
+	RoundResult *ClickSpeedResult  `json:"roundResult,omitempty"`
+}
+
+type ClickSpeedScore struct {
+	PlayerID int     `json:"playerId"`
+	Name     string  `json:"name"`
+	Score    int     `json:"score"`
+	TimeMs   float64 `json:"timeMs,omitempty"`
+}
+
+type ClickSpeedResult struct {
+	WinnerID      int     `json:"winnerId"`
+	Player1TimeMs float64 `json:"player1TimeMs"`
+	Player2TimeMs float64 `json:"player2TimeMs"`
+}
+
+type ClickRoundHistoryData struct {
+	RoundNumber   int     `json:"roundNumber"`
+	Player1TimeMs float64 `json:"player1TimeMs"`
+	Player2TimeMs float64 `json:"player2TimeMs"`
+	WinnerID      int     `json:"winnerId"`
+}
+
+type ClickGameSummaryMessage struct {
+	Type           string                  `json:"type"`
+	Player1ID      int                     `json:"player1Id"`
+	Player1Name    string                  `json:"player1Name"`
+	Player1Score   int                     `json:"player1Score"`
+	Player1AvgTime float64                 `json:"player1AvgTime"`
+	Player2ID      int                     `json:"player2Id"`
+	Player2Name    string                  `json:"player2Name"`
+	Player2Score   int                     `json:"player2Score"`
+	Player2AvgTime float64                 `json:"player2AvgTime"`
+	WinnerID       int                     `json:"winnerId"`
+	RoundHistory   []ClickRoundHistoryData `json:"roundHistory"`
+}

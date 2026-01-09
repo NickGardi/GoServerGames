@@ -23,6 +23,8 @@ type Connection struct {
 	mm              *Matchmaking
 	room            *game.Room
 	speedTypeRoom   *game.SpeedTypeRoom
+	mathSprintRoom  *game.MathSprintRoom
+	clickSpeedRoom  *game.ClickSpeedRoom
 	playerIdx       int
 	playerID        int
 	lobbyPlayer     *LobbyPlayer
@@ -151,11 +153,27 @@ func (c *Connection) readPump() {
 			if err := json.Unmarshal(message, &submitMsg); err == nil {
 				if c.speedTypeRoom != nil {
 					c.speedTypeRoom.SubmitWord(c.playerID, submitMsg.Word, submitMsg.TimeMs)
-					// Broadcast updated state to both players
 					c.mm.broadcastSpeedTypeState(c.speedTypeRoom)
 				}
 			}
 
+		case "mathSprintSubmit":
+			var submitMsg net.MathSprintSubmitMessage
+			if err := json.Unmarshal(message, &submitMsg); err == nil {
+				if c.mathSprintRoom != nil {
+					c.mathSprintRoom.SubmitAnswer(c.playerID, submitMsg.Answer, submitMsg.TimeMs)
+					c.mm.broadcastMathSprintState(c.mathSprintRoom)
+				}
+			}
+
+		case "clickSpeedSubmit":
+			var submitMsg net.ClickSpeedSubmitMessage
+			if err := json.Unmarshal(message, &submitMsg); err == nil {
+				if c.clickSpeedRoom != nil {
+					c.clickSpeedRoom.SubmitClick(c.playerID, submitMsg.TimeMs)
+					c.mm.broadcastClickSpeedState(c.clickSpeedRoom)
+				}
+			}
 		}
 	}
 }

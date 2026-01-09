@@ -1,0 +1,80 @@
+/* Math Sprint specific styles */
+
+.question-display {
+    text-align: center;
+    margin: 40px 0;
+}
+
+.question-label {
+    font-size: 1.2rem;
+    color: #94a3b8;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.question-text {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #818cf8;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 30px rgba(129, 140, 248, 0.3);
+    letter-spacing: 4px;
+}
+
+.answer-input {
+    width: 100%;
+    max-width: 300px;
+    padding: 20px 30px;
+    font-size: 2rem;
+    text-align: center;
+    background: rgba(30, 41, 59, 0.8);
+    border: 2px solid #475569;
+    border-radius: 12px;
+    color: #f1f5f9;
+    outline: none;
+    transition: all 0.3s ease;
+    font-family: 'Courier New', monospace;
+    -moz-appearance: textfield;
+}
+
+.answer-input::-webkit-outer-spin-button,
+.answer-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.answer-input:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 20px rgba(129, 140, 248, 0.3);
+}
+
+.answer-input.correct {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.answer-input.wrong {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.correct-answer {
+    margin-top: 20px;
+    font-size: 1.2rem;
+    color: #10b981;
+    font-weight: bold;
+}
+
+/* Round item styles for math */
+.round-item .round-question {
+    color: #818cf8;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+}
+
+.round-item .round-answer {
+    color: #10b981;
+    font-weight: bold;
+}
+
