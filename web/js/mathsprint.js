@@ -25,6 +25,7 @@ class MathSprintClient {
 
         this.ws.onmessage = (event) => {
             const msg = JSON.parse(event.data);
+            console.log('Received message:', msg.type, msg.state);
             this.handleMessage(msg);
         };
 
@@ -65,6 +66,8 @@ class MathSprintClient {
     }
 
     handleGameState(msg) {
+        console.log('Game state:', msg.state, 'question:', msg.question, 'roundActive:', this.roundActive);
+        
         // Update scores and player names
         if (msg.scores) {
             msg.scores.forEach(score => {
@@ -84,76 +87,37 @@ class MathSprintClient {
             });
         }
 
-        // Handle state transitions
-        if (msg.state !== this.currentState) {
-            this.currentState = msg.state;
+        this.currentState = msg.state;
 
-            switch (msg.state) {
-                case 'waiting':
-                    if (document.getElementById('gameSummary').style.display !== 'block') {
-                        this.showStatusOverlay('Waiting for opponent...');
-                    }
-                    this.countdownActive = false;
-                    break;
-                case 'ready':
-                    this.hideStatusOverlay();
-                    this.showStatusOverlay('Get ready! Question coming...');
-                    this.countdownActive = false;
-                    this.roundActive = false;
-                    this.currentQuestion = '';
-                    break;
-                case 'playing':
-                    if (!this.roundActive) {
-                        document.getElementById('questionDisplay').style.display = 'none';
-                        document.getElementById('answerInput').style.display = 'none';
-                        document.querySelector('.input-area').style.display = 'none';
-                    }
-                    if (msg.question && msg.question !== this.currentQuestion && !this.countdownActive) {
-                        this.showCountdownBeforeRound(msg.question);
-                    } else if (msg.question && !this.countdownActive && !this.roundActive) {
-                        this.startRound(msg.question);
-                    }
-                    break;
-                case 'results':
-                    this.countdownActive = false;
-                    if (msg.roundResult) {
-                        this.showResults(msg.roundResult);
-                    }
-                    break;
-            }
-        } else if (msg.state === 'playing' && this.currentState === 'playing') {
-            if (msg.question && msg.question !== this.currentQuestion && !this.roundActive && !this.countdownActive) {
+        switch (msg.state) {
+            case 'waiting':
+                this.showStatusOverlay('Waiting for opponent...');
+                break;
+                
+            case 'ready':
+                this.hideStatusOverlay();
+                this.countdownActive = false;
+                this.roundActive = false;
+                this.currentQuestion = '';
                 document.getElementById('questionDisplay').style.display = 'none';
-                document.getElementById('answerInput').style.display = 'none';
-                document.querySelector('.input-area').style.display = 'none';
-                this.showCountdownBeforeRound(msg.question);
-            }
-        }
-    }
-
-    startRound(question) {
-        if (question !== this.currentQuestion) {
-            this.currentQuestion = question;
-            this.roundActive = true;
-            this.startTime = Date.now();
-            this.countdownActive = false;
-            
-            // Show question and input
-            document.getElementById('questionDisplay').style.display = 'block';
-            document.getElementById('questionText').textContent = question;
-            document.getElementById('answerInput').style.display = 'block';
-            document.querySelector('.input-area').style.display = 'block';
-            document.getElementById('resultsArea').style.display = 'none';
-            
-            this.hideStatusOverlay();
-            
-            // Setup input
-            const input = document.getElementById('answerInput');
-            input.value = '';
-            input.style.color = '';
-            input.classList.remove('correct', 'wrong');
-            input.disabled = false;
-            input.focus();
+                document.getElementById('resultsArea').style.display = 'none';
+                this.showStatusOverlay('Get ready...');
+                break;
+                
+            case 'playing':
+                // Start countdown if we have a new question and aren't already in a round
+                if (msg.question && !this.roundActive && !this.countdownActive) {
+                    this.showCountdownBeforeRound(msg.question);
+                }
+                break;
+                
+            case 'results':
+                this.countdownActive = false;
+                this.roundActive = false;
+                if (msg.roundResult) {
+                    this.showResults(msg.roundResult);
+                }
+                break;
         }
     }
 
@@ -161,12 +125,13 @@ class MathSprintClient {
         if (this.countdownActive) return;
         
         this.countdownActive = true;
+        this.currentQuestion = question;
         let countdown = 3;
         
+        // Show question faded during countdown
         document.getElementById('questionDisplay').style.display = 'block';
         document.getElementById('questionText').textContent = question;
         document.getElementById('questionText').style.opacity = '0.3';
-        document.getElementById('answerInput').style.display = 'none';
         document.querySelector('.input-area').style.display = 'none';
         document.getElementById('resultsArea').style.display = 'none';
         
@@ -186,6 +151,30 @@ class MathSprintClient {
         }, 1000);
     }
 
+    startRound(question) {
+        console.log('Starting round with question:', question);
+        this.currentQuestion = question;
+        this.roundActive = true;
+        this.startTime = Date.now();
+        
+        // Show question and input
+        document.getElementById('questionDisplay').style.display = 'block';
+        document.getElementById('questionText').textContent = question;
+        document.getElementById('questionText').style.opacity = '1';
+        document.querySelector('.input-area').style.display = 'block';
+        document.getElementById('resultsArea').style.display = 'none';
+        
+        this.hideStatusOverlay();
+        
+        // Setup input
+        const input = document.getElementById('answerInput');
+        input.value = '';
+        input.style.color = '';
+        input.classList.remove('correct', 'wrong');
+        input.disabled = false;
+        input.focus();
+    }
+
     submitAnswer() {
         if (!this.roundActive) return;
         
@@ -195,6 +184,7 @@ class MathSprintClient {
         if (isNaN(answer)) return;
         
         const timeMs = Date.now() - this.startTime;
+        console.log('Submitting answer:', answer, 'time:', timeMs);
         
         this.ws.send(JSON.stringify({
             type: 'mathSprintSubmit',
@@ -214,7 +204,6 @@ class MathSprintClient {
         this.hideStatusOverlay();
         
         document.getElementById('questionDisplay').style.display = 'none';
-        document.getElementById('answerInput').style.display = 'none';
         document.querySelector('.input-area').style.display = 'none';
         document.getElementById('resultsArea').style.display = 'block';
         
@@ -335,4 +324,3 @@ class MathSprintClient {
 window.addEventListener('DOMContentLoaded', () => {
     window.mathSprintClient = new MathSprintClient();
 });
-
