@@ -9,6 +9,7 @@ class LobbyClient {
         this.isReady = false;
         this.reconnecting = false;
         this.initWebSocket();
+        this.setupGameSelection();
         this.setupReadyButton();
     }
 
@@ -89,30 +90,51 @@ class LobbyClient {
                 this.playerID = msg.playerId;
                 console.log('Welcome received, playerID:', this.playerID, 'lobby:', msg.lobby);
                 if (msg.lobby) {
+                    console.log('Updating lobby from welcome message with', msg.lobby.players?.length || 0, 'players');
                     this.updateLobby(msg.lobby);
+                } else {
+                    console.warn('Welcome message received but no lobby data!');
                 }
                 break;
             case 'lobby':
                 console.log('Lobby update received, lobby:', msg.lobby);
                 // Handle both msg.lobby (from SnapMessage) and direct lobby object
                 const lobbyData = msg.lobby || msg;
-                this.updateLobby(lobbyData);
+                if (lobbyData && (lobbyData.players || lobbyData.Players)) {
+                    console.log('Updating lobby from lobby message with', (lobbyData.players || lobbyData.Players).length, 'players');
+                    this.updateLobby(lobbyData);
+                } else {
+                    console.warn('Lobby message received but no player data!');
+                }
                 break;
             case 'gameSelected':
                 this.handleGameSelection(msg);
                 break;
             case 'gameStart':
                 // Auto-redirect when game starts
-                console.log('Game start message received:', msg);
+                console.log('=== GAME START MESSAGE RECEIVED ===');
+                console.log('Full message:', JSON.stringify(msg, null, 2));
+                console.log('Game type:', msg.gameType);
+                console.log('Room ID:', msg.roomId);
+                
                 if (msg.gameType === 'speedtype') {
                     console.log('Redirecting to speed type game immediately...');
+                    // Close WebSocket connection before redirecting to prevent interference
+                    if (this.ws) {
+                        console.log('Closing WebSocket connection before redirect');
+                        this.ws.close();
+                    }
                     // Force immediate redirect - don't wait for anything
-                    setTimeout(() => {
-                        window.location.replace('/speedtype.html');
-                    }, 50);
+                    console.log('Calling window.location.replace...');
+                    window.location.replace('/speedtype.html');
                 } else {
                     console.error('Unknown game type in gameStart:', msg.gameType);
                 }
+                break;
+            case 'speedTypeState':
+                // Ignore game state messages when in lobby - these shouldn't be sent but handle gracefully
+                // If we receive this, it means server thinks we're in a game, but we're in lobby
+                // Just ignore it
                 break;
             default:
                 console.log('Unknown message type:', msg.type);
@@ -127,14 +149,16 @@ class LobbyClient {
         
         console.log('updateLobby called with:', lobby);
         const oldSelectedGame = this.selectedGame;
-        this.players = lobby.players || [];
-        this.selectedGame = lobby.selectedGame || null;
-        this.selectedBy = lobby.selectedBy || null;
+        // Handle both camelCase and PascalCase property names from server
+        this.players = lobby.players || lobby.Players || [];
+        this.selectedGame = lobby.selectedGame || lobby.SelectedGame || null;
+        this.selectedBy = lobby.selectedBy || lobby.SelectedBy || null;
+        const lobbyState = lobby.state || lobby.State || 'waiting';
         
-        console.log('Updated lobby state - players:', this.players.length, 'selectedGame:', this.selectedGame, 'selectedBy:', this.selectedBy, 'state:', lobby.state);
+        console.log('Updated lobby state - players:', this.players.length, 'selectedGame:', this.selectedGame, 'selectedBy:', this.selectedBy, 'state:', lobbyState);
         
         // Check if game is starting - redirect if we see "starting" state
-        if (lobby.state === 'starting' && this.selectedGame === 'speedtype') {
+        if (lobbyState === 'starting' && this.selectedGame === 'speedtype') {
             console.log('Lobby state is "starting", redirecting to game immediately...');
             setTimeout(() => {
                 window.location.replace('/speedtype.html');
@@ -189,14 +213,18 @@ class LobbyClient {
         this.players.forEach((player) => {
             const item = document.createElement('div');
             item.className = 'player-item';
-            const isMe = player.id === this.playerID;
+            // Handle both camelCase and PascalCase
+            const playerID = player.id || player.ID || 0;
+            const playerName = player.name || player.Name || 'Unknown';
+            const isReady = player.ready || player.Ready || false;
+            const isMe = playerID === this.playerID;
             item.innerHTML = `
-                <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                <div class="player-avatar">${playerName.charAt(0).toUpperCase()}</div>
                 <div style="flex: 1;">
                     <div class="player-name">
-                        ${player.name}${isMe ? ' <span style="font-size: 0.9em; color: #10b981;">(You)</span>' : ''}
+                        ${playerName}${isMe ? ' <span style="font-size: 0.9em; color: #10b981;">(You)</span>' : ''}
                     </div>
-                    ${player.ready ? '<div style="font-size: 0.85em; color: #10b981; margin-top: 4px;">✓ Ready</div>' : ''}
+                    ${isReady ? '<div style="font-size: 0.85em; color: #10b981; margin-top: 4px;">✓ Ready</div>' : ''}
                 </div>
             `;
             playersList.appendChild(item);
@@ -226,7 +254,13 @@ class LobbyClient {
     }
 
     setupGameSelection() {
-        // Will be set up after we know players
+        const gameCards = document.querySelectorAll('.game-card:not(.disabled)');
+        gameCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const gameType = card.dataset.game;
+                this.selectGame(gameType);
+            });
+        });
     }
 
     setupReadyButton() {

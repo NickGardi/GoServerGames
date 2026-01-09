@@ -82,7 +82,7 @@ func (c *Connection) readPump() {
 	defer func() {
 		c.conn.Close()
 		if c.playerID > 0 {
-			c.mm.RemovePlayer(c.playerID)
+			c.mm.RemovePlayer(c.playerID, c)
 		}
 	}()
 
@@ -144,21 +144,7 @@ func (c *Connection) readPump() {
 				c.mm.SelectGame(c.playerID, selectMsg.GameType)
 			}
 
-		case "readyForNextRound":
-			var readyMsg net.ReadyForNextRoundMessage
-			if err := json.Unmarshal(message, &readyMsg); err == nil {
-				log.Printf("Received readyForNextRound from player %d: ready=%v", c.playerID, readyMsg.Ready)
-				if c.speedTypeRoom != nil {
-					c.speedTypeRoom.SetReadyForNext(c.playerID, readyMsg.Ready)
-					// Broadcast updated state with ready status
-					c.mm.broadcastSpeedTypeState(c.speedTypeRoom)
-					
-					// Check if both ready - the matchmaking loop will handle starting next round
-					if c.speedTypeRoom.AllReadyForNext() {
-						log.Printf("Both players ready for next round in room %s", c.speedTypeRoom.ID)
-					}
-				}
-			}
+		// readyForNextRound message handler removed - rounds auto-advance after 5 seconds
 
 		case "speedTypeSubmit":
 			var submitMsg net.SpeedTypeSubmitMessage
@@ -169,6 +155,7 @@ func (c *Connection) readPump() {
 					c.mm.broadcastSpeedTypeState(c.speedTypeRoom)
 				}
 			}
+
 		}
 	}
 }

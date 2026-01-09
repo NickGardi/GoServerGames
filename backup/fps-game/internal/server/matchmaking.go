@@ -1,8 +1,8 @@
 package server
 
 import (
-	"1v1/internal/game"
-	"1v1/internal/net"
+	"GoServerGames/internal/game"
+	"GoServerGames/internal/net"
 	"fmt"
 	"log"
 	"sync"

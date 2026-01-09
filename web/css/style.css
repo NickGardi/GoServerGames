@@ -384,6 +384,33 @@ body.dark-mode {
     margin-bottom: 30px;
 }
 
+.timer-display {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    font-size: 1.2em;
+}
+
+.timer-label {
+    color: var(--text-secondary);
+    margin-right: 10px;
+}
+
+.timer-value {
+    font-size: 2em;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+    margin: 0 5px;
+}
+
+.timer-unit {
+    color: var(--text-secondary);
+    font-size: 1em;
+}
+
 .word-input {
     width: 100%;
     padding: 20px;
@@ -478,7 +505,8 @@ body.dark-mode {
 }
 
 .result-winner.loser {
-    color: var(--text-secondary);
+    color: var(--error);
+    background: rgba(239, 68, 68, 0.2);
 }
 
 .next-round {
@@ -497,7 +525,7 @@ body.dark-mode {
 }
 
 .ready-next-round-btn {
-    margin-top: 20px;
+    margin: 20px auto 0;
     padding: 15px 30px;
     background: var(--accent);
     color: white;
@@ -509,6 +537,7 @@ body.dark-mode {
     transition: all 0.3s;
     width: 100%;
     max-width: 300px;
+    display: block;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -524,12 +553,182 @@ body.dark-mode {
 }
 
 .ready-next-round-btn.ready {
-    background: var(--warning);
+    background: var(--success) !important;
+    border: 2px solid rgba(16, 185, 129, 0.3);
 }
 
 .ready-next-round-btn.both-ready {
     background: var(--success);
     animation: pulse 1.5s infinite;
+}
+
+/* Game Summary Styles */
+.game-summary {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.summary-card {
+    background: rgba(240, 240, 240, 0.95);
+    border-radius: 16px;
+    padding: 40px;
+    max-width: 800px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.summary-title {
+    font-size: 2.5em;
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-weight: 700;
+}
+
+.summary-winner {
+    text-align: center;
+    font-size: 2em;
+    font-weight: 700;
+    margin-bottom: 30px;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.summary-winner.winner {
+    color: var(--success);
+    background: rgba(16, 185, 129, 0.2);
+}
+
+.summary-winner.loser {
+    color: var(--error);
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.summary-winner.tie {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.2);
+}
+
+.summary-scores {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 40px;
+    gap: 20px;
+}
+
+.summary-player {
+    flex: 1;
+    text-align: center;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+}
+
+.summary-player-name {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.summary-player-score {
+    font-size: 2em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.summary-player-avg {
+    font-size: 1.2em;
+    color: #666;
+}
+
+.round-breakdown {
+    margin-top: 40px;
+}
+
+.round-breakdown h2 {
+    font-size: 1.8em;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.rounds-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.round-item {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 4px solid var(--accent);
+}
+
+.round-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.round-number {
+    font-size: 1.3em;
+    color: var(--accent);
+}
+
+.round-word {
+    font-size: 1.1em;
+    color: #666;
+    font-style: italic;
+}
+
+.round-times {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px;
+    gap: 20px;
+}
+
+.round-time-item {
+    flex: 1;
+    text-align: center;
+}
+
+.round-time-label {
+    display: block;
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.round-time-value {
+    display: block;
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #333;
+}
+
+.round-winner {
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--success);
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
 }
 
 @keyframes pulse {
@@ -592,9 +791,18 @@ body.dark-mode {
 }
 
 .ready-btn.ready-active {
-    background: #10b981;
+    background: #10b981 !important;
+    background-color: #10b981 !important;
+    color: white !important;
 }
 
 .ready-btn.ready-active:hover {
-    background: #0d9668;
+    background: #10b981 !important;
+    background-color: #10b981 !important;
+}
+
+#finishGameBtn {
+    background: #10b981 !important;
+    background-color: #10b981 !important;
+    color: white !important;
 }

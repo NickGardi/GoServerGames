@@ -20,7 +20,7 @@
                     <span class="score-value" id="player2Score">0</span>
                 </div>
             </div>
-            <div class="target-score">First to <strong>10</strong> wins!</div>
+            <div class="target-score">Best of <strong>2</strong> rounds!</div>
         </div>
 
         <div class="game-area">
@@ -55,18 +55,42 @@
                         </div>
                     </div>
                     <div class="result-winner" id="resultWinner"></div>
-                    <button id="readyNextRoundBtn" class="ready-next-round-btn" style="display: none;">
-                        Ready for Next Round
-                    </button>
-                    <div class="next-round" id="nextRoundBtn" style="display: none;">
-                        Next Round Starting...
-                    </div>
                 </div>
             </div>
         </div>
 
         <div class="game-status-overlay" id="statusOverlay">
             <div class="status-message" id="statusMessage">Waiting for opponent...</div>
+        </div>
+
+        <div class="game-summary" id="gameSummary" style="display: none;">
+            <div class="summary-card">
+                <h1 class="summary-title">Game Complete!</h1>
+                
+                <div class="summary-winner" id="summaryWinner"></div>
+                
+                <div class="summary-scores">
+                    <div class="summary-player">
+                        <div class="summary-player-name" id="summaryPlayer1Name"></div>
+                        <div class="summary-player-score" id="summaryPlayer1Score"></div>
+                        <div class="summary-player-avg" id="summaryPlayer1Avg"></div>
+                    </div>
+                    <div class="summary-player">
+                        <div class="summary-player-name" id="summaryPlayer2Name"></div>
+                        <div class="summary-player-score" id="summaryPlayer2Score"></div>
+                        <div class="summary-player-avg" id="summaryPlayer2Avg"></div>
+                    </div>
+                </div>
+
+                <div class="round-breakdown">
+                    <h2>Round Breakdown</h2>
+                    <div class="rounds-list" id="roundsList"></div>
+                </div>
+                
+                <div class="play-again-section" id="playAgainSection" style="margin-top: 30px; text-align: center;">
+                    <button id="finishGameBtn" class="ready-btn">Finish</button>
+                </div>
+            </div>
         </div>
     </div>
 

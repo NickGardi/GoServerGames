@@ -41,6 +41,11 @@ type ReadyForNextRoundMessage struct {
 	Ready bool   `json:"ready"`
 }
 
+type ReadyForNewGameMessage struct {
+	Type  string `json:"type"`
+	Ready bool   `json:"ready"`
+}
+
 // Server → Client messages
 
 type LobbyPlayer struct {
@@ -136,4 +141,26 @@ type SpeedTypeResult struct {
 	WinnerID      int     `json:"winnerId"`
 	Player1TimeMs float64 `json:"player1TimeMs"`
 	Player2TimeMs float64 `json:"player2TimeMs"`
+}
+
+type RoundHistoryData struct {
+	RoundNumber   int     `json:"roundNumber"`
+	Player1TimeMs float64 `json:"player1TimeMs"`
+	Player2TimeMs float64 `json:"player2TimeMs"`
+	WinnerID      int     `json:"winnerId"`
+	Word          string  `json:"word"`
+}
+
+type GameSummaryMessage struct {
+	Type          string            `json:"type"`
+	Player1ID     int               `json:"player1Id"`
+	Player1Name   string            `json:"player1Name"`
+	Player1Score  int               `json:"player1Score"`
+	Player1AvgTime float64          `json:"player1AvgTime"`
+	Player2ID     int               `json:"player2Id"`
+	Player2Name   string            `json:"player2Name"`
+	Player2Score  int               `json:"player2Score"`
+	Player2AvgTime float64          `json:"player2AvgTime"`
+	WinnerID      int               `json:"winnerId"`
+	RoundHistory  []RoundHistoryData `json:"roundHistory"`
 }
