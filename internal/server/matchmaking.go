@@ -1167,8 +1167,10 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 		}
 	}
 	
-	// Reset player IDs when lobby is empty and no active games
-	if len(m.lobby) == 0 && len(m.connections) == 0 {
+	// Reset player IDs only when lobby is empty AND no active game rooms exist
+	// This prevents resetting during the game start transition when connections temporarily drop
+	activeGames := len(m.speedTypeRooms) + len(m.mathSprintRooms) + len(m.clickSpeedRooms)
+	if len(m.lobby) == 0 && len(m.connections) == 0 && activeGames == 0 {
 		m.nextPlayerID = 1
 		log.Printf("Reset player ID counter to 1")
 	}
