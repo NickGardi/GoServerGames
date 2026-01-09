@@ -63,6 +63,9 @@ func (m *Matchmaking) AddPlayer(name string, conn *Connection) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	log.Printf("AddPlayer called for '%s'. speedTypeRooms=%d, mathSprintRooms=%d, clickSpeedRooms=%d, lobby=%d",
+		name, len(m.speedTypeRooms), len(m.mathSprintRooms), len(m.clickSpeedRooms), len(m.lobby))
+
 	// Check if player is in an active Speed Type game room (reconnection after redirect)
 	for _, room := range m.speedTypeRooms {
 		if room.CheckGameEnd() {
@@ -84,7 +87,11 @@ func (m *Matchmaking) AddPlayer(name string, conn *Connection) int {
 	}
 
 	// Check if player is in an active Math Sprint game room (reconnection after redirect)
-	for _, room := range m.mathSprintRooms {
+	for roomID, room := range m.mathSprintRooms {
+		log.Printf("  Checking math sprint room %s: GameEnded=%v, Players=[%v, %v]",
+			roomID, room.GameEnded,
+			func() string { if room.Players[0] != nil { return room.Players[0].Name } else { return "nil" } }(),
+			func() string { if room.Players[1] != nil { return room.Players[1].Name } else { return "nil" } }())
 		if room.CheckGameEnd() {
 			continue
 		}
@@ -104,7 +111,11 @@ func (m *Matchmaking) AddPlayer(name string, conn *Connection) int {
 	}
 
 	// Check if player is in an active Click Speed game room (reconnection after redirect)
-	for _, room := range m.clickSpeedRooms {
+	for roomID, room := range m.clickSpeedRooms {
+		log.Printf("  Checking click speed room %s: GameEnded=%v, Players=[%v, %v]",
+			roomID, room.GameEnded,
+			func() string { if room.Players[0] != nil { return room.Players[0].Name } else { return "nil" } }(),
+			func() string { if room.Players[1] != nil { return room.Players[1].Name } else { return "nil" } }())
 		if room.CheckGameEnd() {
 			continue
 		}
@@ -312,18 +323,18 @@ func (m *Matchmaking) SetReady(playerID int, ready bool) bool {
 		}
 		
 		if selectedGame != "" {
-			allReady := true
-			for _, lp := range m.lobby {
-				if !lp.Ready {
-					allReady = false
-					break
-				}
+		allReady := true
+		for _, lp := range m.lobby {
+			if !lp.Ready {
+				allReady = false
+				break
 			}
+		}
 
-			if allReady {
+		if allReady {
 				log.Printf("All players ready! Starting game: %s", selectedGame)
 				m.startSelectedGameUnlocked(selectedGame)
-				return true
+			return true
 			} else {
 				log.Printf("Not all players ready. Player 1 (%s) ready: %v, Player 2 (%s) ready: %v", 
 					m.lobby[0].Name, m.lobby[0].Ready, m.lobby[1].Name, m.lobby[1].Ready)
@@ -525,14 +536,14 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string) {
 func (m *Matchmaking) startSpeedTypeGame(room *game.SpeedTypeRoom, p1, p2 *LobbyPlayer) {
 	// Wait for both players to reconnect after redirecting
 	time.Sleep(2 * time.Second)
-	
+
 	log.Printf("Game loop starting for room %s", room.ID)
 
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
 	maxRounds := 2
-	
+
 	// Start rounds
 	for round := 1; round <= maxRounds; round++ {
 		room.StartRound()
@@ -646,7 +657,7 @@ func (m *Matchmaking) startMathSprintGame(room *game.MathSprintRoom, p1, p2 *Lob
 
 		time.Sleep(3 * time.Second)
 		room.ResetReadyForNext()
-		room.State = "ready"
+					room.State = "ready"
 	}
 	
 	log.Printf("Math sprint game loop ended for room %s", room.ID)
@@ -1069,7 +1080,7 @@ func (m *Matchmaking) GetRoom(roomID string) *game.Room {
 func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// CRITICAL: Only remove from connections if this is the CURRENT connection
 	// This prevents old connections from removing new ones after redirect
 	if existingConn, ok := m.connections[playerID]; ok && existingConn == conn {
@@ -1098,7 +1109,7 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 			break
 		}
 	}
-	
+
 	// Clean up ended speed type rooms where both players have disconnected
 	for roomID, room := range m.speedTypeRooms {
 		if room.GameEnded {
@@ -1126,7 +1137,7 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 				if player != nil {
 					if _, ok := m.connections[player.ID]; ok {
 						anyConnected = true
-						break
+				break
 					}
 				}
 			}
