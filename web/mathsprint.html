@@ -3,73 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quick Math Sprint - 1v1 Games</title>
+    <title>Quick Math - GoServerGames</title>
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/mathsprint.css">
 </head>
-<body>
-    <div class="game-container">
+<body class="dark-mode">
+    <div class="game-container speedtype">
         <div class="game-header">
             <div class="score-display">
                 <div class="player-score">
-                    <span class="player-name" id="player1Name">You</span>
-                    <span class="score" id="player1Score">0</span>
+                    <span class="player-name" id="player1Name">Player 1</span>
+                    <span class="score-value" id="player1Score">0</span>
                 </div>
                 <div class="vs">vs</div>
                 <div class="player-score">
-                    <span class="player-name" id="player2Name">Opponent</span>
-                    <span class="score" id="player2Score">0</span>
+                    <span class="player-name" id="player2Name">Player 2</span>
+                    <span class="score-value" id="player2Score">0</span>
                 </div>
             </div>
-            <div class="round-info">Best of <span id="roundCount">2</span> rounds!</div>
+            <div class="target-score">Best of <strong>2</strong> rounds!</div>
         </div>
 
         <div class="game-area">
-            <div class="status-overlay" id="statusOverlay">
-                <div class="status-text" id="statusText">Waiting for opponent...</div>
+            <div class="word-display" id="questionDisplay">
+                <div class="word-label">Solve this:</div>
+                <div class="word-text" id="questionText">Loading...</div>
             </div>
 
-            <div class="question-display" id="questionDisplay" style="display: none;">
-                <div class="question-label">SOLVE:</div>
-                <div class="question-text" id="questionText">12 + 34</div>
-            </div>
-
-            <div class="input-area" style="display: none;">
-                <input type="number" id="answerInput" class="answer-input" placeholder="Your answer..." autocomplete="off">
+            <div class="input-area">
+                <input 
+                    type="number" 
+                    id="answerInput" 
+                    class="word-input" 
+                    placeholder="Your answer..."
+                    autocomplete="off"
+                >
+                <div class="input-hint">Press Enter to submit</div>
             </div>
 
             <div class="results-area" id="resultsArea" style="display: none;">
-                <div class="result-title" id="resultTitle">Round Results</div>
-                <div class="result-times">
-                    <div class="result-time">
-                        <span class="result-player">You:</span>
-                        <span class="result-value" id="yourTime">0.00s</span>
+                <div class="result-card" id="resultCard">
+                    <div class="result-title" id="resultTitle">Round Results</div>
+                    <div class="result-times">
+                        <div class="time-result">
+                            <span class="time-label">You:</span>
+                            <span class="time-value" id="yourTime">0.00s</span>
+                        </div>
+                        <div class="time-result">
+                            <span class="time-label" id="opponentNameResult">Opponent:</span>
+                            <span class="time-value" id="opponentTime">0.00s</span>
+                        </div>
                     </div>
-                    <div class="result-time">
-                        <span class="result-player" id="opponentNameResult">Opponent:</span>
-                        <span class="result-value" id="opponentTime">0.00s</span>
-                    </div>
+                    <div class="result-winner" id="correctAnswer"></div>
                 </div>
-                <div class="correct-answer" id="correctAnswer">Correct answer: 46</div>
             </div>
         </div>
 
+        <div class="game-status-overlay" id="statusOverlay">
+            <div class="status-message" id="statusText">Waiting for opponent...</div>
+        </div>
+
         <div class="game-summary" id="gameSummary" style="display: none;">
-            <div class="summary-content">
-                <h1 class="summary-title">Game Over!</h1>
-                <div class="summary-winner" id="summaryWinner">You Won!</div>
+            <div class="summary-card">
+                <h1 class="summary-title">Game Complete!</h1>
                 
-                <div class="summary-stats">
+                <div class="summary-winner" id="summaryWinner"></div>
+                
+                <div class="summary-scores">
                     <div class="summary-player">
-                        <h3 id="summaryPlayer1Name">You</h3>
-                        <div class="summary-score" id="summaryPlayer1Score">Score: 0</div>
-                        <div class="summary-avg" id="summaryPlayer1Avg">Avg Time: 0.00s</div>
+                        <div class="summary-player-name" id="summaryPlayer1Name"></div>
+                        <div class="summary-player-score" id="summaryPlayer1Score"></div>
+                        <div class="summary-player-avg" id="summaryPlayer1Avg"></div>
                     </div>
-                    <div class="summary-vs">VS</div>
                     <div class="summary-player">
-                        <h3 id="summaryPlayer2Name">Opponent</h3>
-                        <div class="summary-score" id="summaryPlayer2Score">Score: 0</div>
-                        <div class="summary-avg" id="summaryPlayer2Avg">Avg Time: 0.00s</div>
+                        <div class="summary-player-name" id="summaryPlayer2Name"></div>
+                        <div class="summary-player-score" id="summaryPlayer2Score"></div>
+                        <div class="summary-player-avg" id="summaryPlayer2Avg"></div>
                     </div>
                 </div>
 
@@ -78,7 +86,7 @@
                     <div class="rounds-list" id="roundsList"></div>
                 </div>
                 
-                <div class="play-again-section" id="playAgainSection" style="margin-top: 30px; text-align: center;">
+                <div class="play-again-section" style="margin-top: 30px; text-align: center;">
                     <button id="backToLobbyBtn" class="ready-btn">Back to Lobby</button>
                 </div>
             </div>
@@ -88,4 +96,3 @@
     <script src="/js/mathsprint.js"></script>
 </body>
 </html>
-

@@ -8,7 +8,7 @@ class ClickSpeedClient {
         this.roundActive = false;
         this.waitingForTarget = false;
         this.hasClicked = false;
-        this.currentTargetKey = null; // Track current target to detect new rounds
+        this.currentTargetKey = null;
         this.scores = { player1: 0, player2: 0 };
         this.playerIDs = { player1: null, player2: null };
         this.playerNames = { player1: 'You', player2: 'Opponent' };
@@ -79,7 +79,7 @@ class ClickSpeedClient {
 
         switch (msg.state) {
             case 'waiting':
-                this.showStatusOverlay('Waiting for opponent...');
+                this.showArenaOverlay('Waiting for opponent...');
                 break;
                 
             case 'ready':
@@ -89,7 +89,7 @@ class ClickSpeedClient {
                 this.roundActive = false;
                 this.waitingForTarget = false;
                 this.currentTargetKey = null;
-                this.showStatusOverlay('Get ready...');
+                this.showArenaOverlay('Get ready...');
                 break;
                 
             case 'playing':
@@ -120,16 +120,29 @@ class ClickSpeedClient {
         this.waitingForTarget = true;
         this.hideTarget();
         this.hideResults();
-        this.showStatusOverlay('Get ready... target appearing soon!');
         
-        // Random delay between 2-4 seconds
-        const delay = 2000 + Math.random() * 2000;
+        // Show countdown
+        let countdown = 3;
+        this.showArenaOverlay(`${countdown}`);
         
-        setTimeout(() => {
-            if (this.currentState === 'playing' && !this.roundActive && !this.hasClicked) {
-                this.showTarget(targetX, targetY, radius);
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+                this.showArenaOverlay(`${countdown}`);
+            } else {
+                clearInterval(countdownInterval);
+                this.showArenaOverlay('Click the target!');
+                
+                // Random delay between 1-3 seconds before target appears
+                const delay = 1000 + Math.random() * 2000;
+                
+                setTimeout(() => {
+                    if (this.currentState === 'playing' && !this.roundActive && !this.hasClicked) {
+                        this.showTarget(targetX, targetY, radius);
+                    }
+                }, delay);
             }
-        }, delay);
+        }, 1000);
     }
 
     showTarget(targetX, targetY, radius) {
@@ -138,7 +151,7 @@ class ClickSpeedClient {
         this.hasClicked = false;
         this.startTime = Date.now();
         
-        this.hideStatusOverlay();
+        this.hideArenaOverlay();
         
         const target = document.getElementById('target');
         const arena = document.getElementById('clickArena');
@@ -175,9 +188,10 @@ class ClickSpeedClient {
         this.roundActive = false;
         const timeMs = Date.now() - this.startTime;
         
-        // Visual feedback
+        // Visual feedback - turn green
         const target = document.getElementById('target');
         target.classList.add('clicked');
+        target.onclick = null;
         
         // Send to server
         this.ws.send(JSON.stringify({
@@ -188,8 +202,8 @@ class ClickSpeedClient {
         // Show waiting message after animation
         setTimeout(() => {
             if (this.currentState === 'playing') {
-                this.showStatusOverlay('Waiting for opponent...');
                 this.hideTarget();
+                this.showArenaOverlay('Waiting for opponent...');
             }
         }, 300);
     }
@@ -200,9 +214,20 @@ class ClickSpeedClient {
         target.onclick = null;
     }
 
+    showArenaOverlay(text) {
+        const overlay = document.getElementById('arenaOverlay');
+        const statusText = document.getElementById('arenaStatus');
+        statusText.textContent = text;
+        overlay.style.display = 'flex';
+    }
+
+    hideArenaOverlay() {
+        document.getElementById('arenaOverlay').style.display = 'none';
+    }
+
     showResults(result) {
         this.roundActive = false;
-        this.hideStatusOverlay();
+        this.hideArenaOverlay();
         this.hideTarget();
         
         document.getElementById('resultsArea').style.display = 'block';
@@ -218,13 +243,13 @@ class ClickSpeedClient {
         const resultTitle = document.getElementById('resultTitle');
         if (result.winnerId === this.playerID) {
             resultTitle.textContent = '🎯 You won this round!';
-            resultTitle.className = 'result-title winner';
+            resultTitle.style.color = '#10b981';
         } else if (result.winnerId > 0) {
             resultTitle.textContent = `${this.playerNames.player2} won this round`;
-            resultTitle.className = 'result-title loser';
+            resultTitle.style.color = '#ef4444';
         } else {
             resultTitle.textContent = "It's a tie!";
-            resultTitle.className = 'result-title tie';
+            resultTitle.style.color = '#f59e0b';
         }
     }
 
@@ -232,19 +257,8 @@ class ClickSpeedClient {
         document.getElementById('resultsArea').style.display = 'none';
     }
 
-    showStatusOverlay(text) {
-        const overlay = document.getElementById('statusOverlay');
-        const statusText = document.getElementById('statusText');
-        statusText.textContent = text;
-        overlay.style.display = 'flex';
-    }
-
-    hideStatusOverlay() {
-        document.getElementById('statusOverlay').style.display = 'none';
-    }
-
     showGameSummary(summary) {
-        document.getElementById('clickArena').style.display = 'none';
+        document.querySelector('.game-area').style.display = 'none';
         document.querySelector('.game-header').style.display = 'none';
         document.getElementById('gameSummary').style.display = 'block';
 
@@ -270,11 +284,11 @@ class ClickSpeedClient {
 
         document.getElementById('summaryPlayer1Name').textContent = myName;
         document.getElementById('summaryPlayer1Score').textContent = `Score: ${myScore}`;
-        document.getElementById('summaryPlayer1Avg').textContent = `Avg Time: ${(myAvgTime / 1000).toFixed(3)}s`;
+        document.getElementById('summaryPlayer1Avg').textContent = `Avg: ${(myAvgTime / 1000).toFixed(3)}s`;
 
         document.getElementById('summaryPlayer2Name').textContent = opponentName;
         document.getElementById('summaryPlayer2Score').textContent = `Score: ${opponentScore}`;
-        document.getElementById('summaryPlayer2Avg').textContent = `Avg Time: ${(opponentAvgTime / 1000).toFixed(3)}s`;
+        document.getElementById('summaryPlayer2Avg').textContent = `Avg: ${(opponentAvgTime / 1000).toFixed(3)}s`;
 
         const roundsList = document.getElementById('roundsList');
         roundsList.innerHTML = '';
@@ -285,24 +299,17 @@ class ClickSpeedClient {
             
             const myTime = isPlayer1 ? round.player1TimeMs : round.player2TimeMs;
             const oppTime = isPlayer1 ? round.player2TimeMs : round.player1TimeMs;
-            const roundWinner = round.winnerId === this.playerID ? 'You' : 
-                              (round.winnerId > 0 ? opponentName : 'Tie');
+            const iWon = round.winnerId === this.playerID;
+            const theyWon = round.winnerId > 0 && round.winnerId !== this.playerID;
             
             roundDiv.innerHTML = `
                 <div class="round-header">
                     <span class="round-number">Round ${round.roundNumber}</span>
                 </div>
                 <div class="round-times">
-                    <div class="round-time-item">
-                        <span class="round-time-label">${myName}:</span>
-                        <span class="round-time-value">${(myTime / 1000).toFixed(3)}s</span>
-                    </div>
-                    <div class="round-time-item">
-                        <span class="round-time-label">${opponentName}:</span>
-                        <span class="round-time-value">${(oppTime / 1000).toFixed(3)}s</span>
-                    </div>
+                    <span class="${iWon ? 'winner' : ''}">${myName}: ${(myTime / 1000).toFixed(3)}s</span>
+                    <span class="${theyWon ? 'winner' : ''}">${opponentName}: ${(oppTime / 1000).toFixed(3)}s</span>
                 </div>
-                <div class="round-winner">Winner: ${roundWinner}</div>
             `;
             roundsList.appendChild(roundDiv);
         });

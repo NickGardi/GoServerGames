@@ -8,7 +8,7 @@ class MathSprintClient {
         this.startTime = null;
         this.roundActive = false;
         this.countdownActive = false;
-        this.hasSubmitted = false; // Track if we've submitted for current question
+        this.hasSubmitted = false;
         this.scores = { player1: 0, player2: 0 };
         this.playerIDs = { player1: null, player2: null };
         this.playerNames = { player1: 'You', player2: 'Opponent' };
@@ -43,7 +43,7 @@ class MathSprintClient {
     setupInput() {
         const input = document.getElementById('answerInput');
         input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && this.roundActive) {
+            if (e.key === 'Enter' && this.roundActive && !this.hasSubmitted) {
                 this.submitAnswer();
             }
         });
@@ -96,9 +96,10 @@ class MathSprintClient {
                 this.roundActive = false;
                 this.hasSubmitted = false;
                 this.currentQuestion = '';
-                document.getElementById('questionDisplay').style.display = 'none';
+                document.getElementById('questionDisplay').style.display = 'block';
+                document.getElementById('questionText').textContent = 'Get ready...';
+                document.querySelector('.input-area').style.display = 'none';
                 document.getElementById('resultsArea').style.display = 'none';
-                this.showStatusOverlay('Get ready...');
                 break;
                 
             case 'playing':
@@ -135,12 +136,12 @@ class MathSprintClient {
         document.querySelector('.input-area').style.display = 'none';
         document.getElementById('resultsArea').style.display = 'none';
         
-        this.showStatusOverlay(`Starting in ${countdown}...`);
+        this.showStatusOverlay(`${countdown}`);
         
         const countdownInterval = setInterval(() => {
             countdown--;
             if (countdown > 0) {
-                this.showStatusOverlay(`Starting in ${countdown}...`);
+                this.showStatusOverlay(`${countdown}`);
             } else {
                 clearInterval(countdownInterval);
                 document.getElementById('questionText').style.opacity = '1';
@@ -160,7 +161,7 @@ class MathSprintClient {
         document.getElementById('questionDisplay').style.display = 'block';
         document.getElementById('questionText').textContent = question;
         document.getElementById('questionText').style.opacity = '1';
-        document.querySelector('.input-area').style.display = 'flex';
+        document.querySelector('.input-area').style.display = 'block';
         document.getElementById('resultsArea').style.display = 'none';
         
         this.hideStatusOverlay();
@@ -189,21 +190,27 @@ class MathSprintClient {
             timeMs: timeMs
         }));
         
-        // Mark as submitted and disable input
+        // Mark as submitted - keep input visible with green highlight
         this.hasSubmitted = true;
         this.roundActive = false;
         input.disabled = true;
+        input.classList.add('correct'); // Show green - server will validate
         
-        this.showStatusOverlay('Waiting for opponent...');
+        // Show waiting message below but keep the input visible
+        document.querySelector('.input-hint').textContent = 'Waiting for opponent...';
     }
 
     showResults(result) {
         this.roundActive = false;
         this.hideStatusOverlay();
         
+        // Hide question and input, show results
         document.getElementById('questionDisplay').style.display = 'none';
         document.querySelector('.input-area').style.display = 'none';
         document.getElementById('resultsArea').style.display = 'block';
+        
+        // Reset input hint for next round
+        document.querySelector('.input-hint').textContent = 'Press Enter to submit';
         
         const isPlayer1 = this.playerID === this.playerIDs.player1;
         const myTime = isPlayer1 ? result.player1TimeMs : result.player2TimeMs;
@@ -212,18 +219,18 @@ class MathSprintClient {
         document.getElementById('yourTime').textContent = `${(myTime / 1000).toFixed(2)}s`;
         document.getElementById('opponentTime').textContent = `${(oppTime / 1000).toFixed(2)}s`;
         document.getElementById('opponentNameResult').textContent = `${this.playerNames.player2}:`;
-        document.getElementById('correctAnswer').textContent = `Correct answer: ${result.correctAnswer}`;
+        document.getElementById('correctAnswer').textContent = `Answer: ${result.correctAnswer}`;
         
         const resultTitle = document.getElementById('resultTitle');
         if (result.winnerId === this.playerID) {
             resultTitle.textContent = '🎉 You won this round!';
-            resultTitle.className = 'result-title winner';
+            resultTitle.style.color = '#10b981';
         } else if (result.winnerId > 0) {
             resultTitle.textContent = `${this.playerNames.player2} won this round`;
-            resultTitle.className = 'result-title loser';
+            resultTitle.style.color = '#ef4444';
         } else {
             resultTitle.textContent = "It's a tie!";
-            resultTitle.className = 'result-title tie';
+            resultTitle.style.color = '#f59e0b';
         }
     }
 
@@ -241,6 +248,7 @@ class MathSprintClient {
     showGameSummary(summary) {
         document.querySelector('.game-area').style.display = 'none';
         document.querySelector('.game-header').style.display = 'none';
+        document.getElementById('statusOverlay').style.display = 'none';
         document.getElementById('gameSummary').style.display = 'block';
 
         const isPlayer1 = this.playerID === summary.player1Id;
@@ -265,11 +273,11 @@ class MathSprintClient {
 
         document.getElementById('summaryPlayer1Name').textContent = myName;
         document.getElementById('summaryPlayer1Score').textContent = `Score: ${myScore}`;
-        document.getElementById('summaryPlayer1Avg').textContent = `Avg Time: ${(myAvgTime / 1000).toFixed(2)}s`;
+        document.getElementById('summaryPlayer1Avg').textContent = `Avg: ${(myAvgTime / 1000).toFixed(2)}s`;
 
         document.getElementById('summaryPlayer2Name').textContent = opponentName;
         document.getElementById('summaryPlayer2Score').textContent = `Score: ${opponentScore}`;
-        document.getElementById('summaryPlayer2Avg').textContent = `Avg Time: ${(opponentAvgTime / 1000).toFixed(2)}s`;
+        document.getElementById('summaryPlayer2Avg').textContent = `Avg: ${(opponentAvgTime / 1000).toFixed(2)}s`;
 
         const roundsList = document.getElementById('roundsList');
         roundsList.innerHTML = '';
@@ -280,25 +288,18 @@ class MathSprintClient {
             
             const myTime = isPlayer1 ? round.player1TimeMs : round.player2TimeMs;
             const oppTime = isPlayer1 ? round.player2TimeMs : round.player1TimeMs;
-            const roundWinner = round.winnerId === this.playerID ? 'You' : 
-                              (round.winnerId > 0 ? opponentName : 'Tie');
+            const iWon = round.winnerId === this.playerID;
+            const theyWon = round.winnerId > 0 && round.winnerId !== this.playerID;
             
             roundDiv.innerHTML = `
                 <div class="round-header">
                     <span class="round-number">Round ${round.roundNumber}</span>
-                    <span class="round-question">${round.question} = ${round.answer}</span>
+                    <span class="round-word">${round.question} = ${round.answer}</span>
                 </div>
                 <div class="round-times">
-                    <div class="round-time-item">
-                        <span class="round-time-label">${myName}:</span>
-                        <span class="round-time-value">${(myTime / 1000).toFixed(2)}s</span>
-                    </div>
-                    <div class="round-time-item">
-                        <span class="round-time-label">${opponentName}:</span>
-                        <span class="round-time-value">${(oppTime / 1000).toFixed(2)}s</span>
-                    </div>
+                    <span class="${iWon ? 'winner' : ''}">${myName}: ${(myTime / 1000).toFixed(2)}s</span>
+                    <span class="${theyWon ? 'winner' : ''}">${opponentName}: ${(oppTime / 1000).toFixed(2)}s</span>
                 </div>
-                <div class="round-winner">Winner: ${roundWinner}</div>
             `;
             roundsList.appendChild(roundDiv);
         });
