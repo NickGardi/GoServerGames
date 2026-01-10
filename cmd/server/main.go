@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
@@ -54,14 +55,27 @@ func main() {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.Printf("Login error: Failed to decode request: %v", err)
 			http.Error(w, "Invalid request", http.StatusBadRequest)
 			return
 		}
 
-		if req.RoomCode == "" {
+		// Normalize room code: uppercase and remove non-alphanumeric
+		roomCode := strings.ToUpper(strings.TrimSpace(req.RoomCode))
+		roomCode = strings.Map(func(r rune) rune {
+			if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+				return r
+			}
+			return -1
+		}, roomCode)
+
+		if roomCode == "" {
+			log.Printf("Login error: Room code is empty or invalid (original: '%s')", req.RoomCode)
 			http.Error(w, "Room code is required", http.StatusBadRequest)
 			return
 		}
+
+		log.Printf("Login attempt: username=%s, roomCode=%s", req.Username, roomCode)
 
 		authenticated, err := server.Authenticate(req.Username, req.Password)
 		if err != nil {
@@ -74,7 +88,7 @@ func main() {
 			return
 		}
 
-		session, err := sessionStore.CreateSession(req.Username, req.RoomCode)
+		session, err := sessionStore.CreateSession(req.Username, roomCode)
 		if err != nil {
 			http.Error(w, "Failed to create session", http.StatusInternalServerError)
 			return

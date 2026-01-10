@@ -248,12 +248,21 @@ func HandleWebSocketWithAuth(mm *Matchmaking, sessionStore *SessionStore) http.H
 
 		c := NewConnection(conn, mm, session)
 		
+		// Validate room code from session
+		if session.RoomCode == "" {
+			log.Printf("Client rejected: %s - session has empty room code", session.PlayerName)
+			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "Invalid session: room code missing"))
+			conn.Close()
+			return
+		}
+		
 		log.Printf("Client connected: %s (room: %s)", session.PlayerName, session.RoomCode)
 		
 		// Add player immediately when they connect (handles both lobby and game page connections)
 		playerID := mm.AddPlayer(session.PlayerName, session.RoomCode, c)
 		if playerID == 0 {
-			log.Printf("Failed to add player: %s in room %s (room may be full or error)", session.PlayerName, session.RoomCode)
+			log.Printf("Failed to add player: %s in room %s (room may be full or validation error)", session.PlayerName, session.RoomCode)
+			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "Room full or invalid"))
 			conn.Close()
 			return
 		}

@@ -21,7 +21,8 @@
                 </div>
                 <div class="form-group">
                     <label for="roomCode">Room Code</label>
-                    <input type="text" id="roomCode" name="roomCode" placeholder="Enter a room code to join friends" required>
+                    <input type="text" id="roomCode" name="roomCode" placeholder="Enter room code (e.g. GAME1)" maxlength="20" required autocomplete="off">
+                    <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">Share this code with your friend to play together</small>
                 </div>
                 <div id="error" class="error-message"></div>
                 <button type="submit" class="btn-primary">Login</button>
