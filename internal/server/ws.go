@@ -115,16 +115,8 @@ func (c *Connection) readPump() {
 
 		switch msgType {
 		case "hello":
-			var hello net.HelloMessage
-			if err := json.Unmarshal(message, &hello); err == nil {
-				log.Printf("Hello received from session %s (username: %s), adding player", c.session.PlayerName, hello.Name)
-				// Use session player name, not hello.Name
-				// AddPlayer will send welcome and broadcast lobby update
-				c.playerID = c.mm.AddPlayer(c.session.PlayerName, c)
-				log.Printf("Player added with ID %d, name: %s", c.playerID, c.session.PlayerName)
-			} else {
-				log.Printf("Error parsing hello message: %v", err)
-			}
+			// Hello is now just for compatibility - player is already added on connect
+			log.Printf("Hello received from player %d (%s)", c.playerID, c.session.PlayerName)
 
 		case "ready":
 			var ready net.ReadyMessage
@@ -255,10 +247,20 @@ func HandleWebSocketWithAuth(mm *Matchmaking, sessionStore *SessionStore) http.H
 		}
 
 		c := NewConnection(conn, mm, session)
+		
+		log.Printf("Client connected: %s", session.PlayerName)
+		
+		// Add player immediately when they connect (handles both lobby and game page connections)
+		playerID := mm.AddPlayer(session.PlayerName, c)
+		if playerID == 0 {
+			log.Printf("Failed to add player: %s (lobby may be full or error)", session.PlayerName)
+			conn.Close()
+			return
+		}
+		log.Printf("Player added with ID %d, name: %s", playerID, session.PlayerName)
+		
 		go c.writePump()
 		go c.readPump()
 		go c.StartSnapshotLoop()
-
-		log.Printf("Client connected: %s", session.PlayerName)
 	}
 }
