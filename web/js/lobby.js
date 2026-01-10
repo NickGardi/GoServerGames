@@ -292,18 +292,12 @@ class LobbyClient {
         // Remove previous selection
         document.querySelectorAll('.game-card').forEach(card => {
             card.classList.remove('selected');
-            const status = card.querySelector('.game-status');
-            status.classList.remove('selected', 'waiting');
-            status.querySelector('.status-text').textContent = 'Waiting for selection...';
         });
 
-        // Mark selected with "You selected..." text
+        // Mark selected
         const card = document.querySelector(`[data-game="${gameType}"]`);
         if (card) {
             card.classList.add('selected');
-            const status = card.querySelector('.game-status');
-            status.classList.add('selected');
-            status.querySelector('.status-text').textContent = 'You selected this game';
         }
 
         this.selectedGame = gameType;
@@ -314,43 +308,21 @@ class LobbyClient {
     }
 
     updateGameSelectionStatus() {
-        const gameCards = document.querySelectorAll('.game-card:not(.disabled)');
+        const gameCards = document.querySelectorAll('.game-card');
         
         gameCards.forEach(card => {
             // Remove old event listeners by cloning
             const newCard = card.cloneNode(true);
             card.parentNode.replaceChild(newCard, card);
             
-            // Both players can select games (if no game selected yet or if it's the selected game)
             const gameType = newCard.dataset.game;
             const isSelected = this.selectedGame === gameType;
             
             // Update visual selection state
             if (isSelected) {
                 newCard.classList.add('selected');
-                const status = newCard.querySelector('.game-status');
-                if (status) {
-                    status.classList.add('selected');
-                    const statusText = status.querySelector('.status-text');
-                    
-                    // Show who selected the game
-                    if (this.selectedBy) {
-                        if (this.selectedBy.playerId === this.playerID) {
-                            statusText.textContent = 'You selected this game';
-                        } else {
-                            statusText.textContent = `${this.selectedBy.name} selected this game`;
-                        }
-                    } else {
-                        statusText.textContent = 'Selected';
-                    }
-                }
             } else {
                 newCard.classList.remove('selected');
-                const status = newCard.querySelector('.game-status');
-                if (status) {
-                    status.classList.remove('selected');
-                    status.querySelector('.status-text').textContent = 'Waiting for selection...';
-                }
             }
             
             if (this.selectedGame && !isSelected) {
