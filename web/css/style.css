@@ -746,6 +746,10 @@ body.dark-mode {
     border-top: 1px solid #ddd;
 }
 
+.winner-text {
+    color: #10b981 !important;
+}
+
 @keyframes pulse {
     0%, 100% {
         opacity: 1;

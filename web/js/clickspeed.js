@@ -301,15 +301,23 @@ class ClickSpeedClient {
             const oppTime = isPlayer1 ? round.player2TimeMs : round.player1TimeMs;
             const iWon = round.winnerId === this.playerID;
             const theyWon = round.winnerId > 0 && round.winnerId !== this.playerID;
+            const winnerText = iWon ? 'You' : (theyWon ? opponentName : 'Tie');
             
             roundDiv.innerHTML = `
                 <div class="round-header">
                     <span class="round-number">Round ${round.roundNumber}</span>
                 </div>
                 <div class="round-times">
-                    <span class="${iWon ? 'winner' : ''}">${myName}: ${(myTime / 1000).toFixed(3)}s</span>
-                    <span class="${theyWon ? 'winner' : ''}">${opponentName}: ${(oppTime / 1000).toFixed(3)}s</span>
+                    <div class="round-time-item">
+                        <span class="round-time-label">${myName}</span>
+                        <span class="round-time-value ${iWon ? 'winner-text' : ''}">${(myTime / 1000).toFixed(3)}s</span>
+                    </div>
+                    <div class="round-time-item">
+                        <span class="round-time-label">${opponentName}</span>
+                        <span class="round-time-value ${theyWon ? 'winner-text' : ''}">${(oppTime / 1000).toFixed(3)}s</span>
+                    </div>
                 </div>
+                <div class="round-winner">Winner: ${winnerText}</div>
             `;
             roundsList.appendChild(roundDiv);
         });
