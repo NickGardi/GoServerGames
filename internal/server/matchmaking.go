@@ -25,6 +25,7 @@ type Matchmaking struct {
 type LobbyPlayer struct {
 	PlayerID     int
 	Name         string
+	RoomCode     string
 	Conn         *Connection
 	Ready        bool
 	SelectedGame string // "speedtype", "game2", "game3", or ""
@@ -48,7 +49,7 @@ func NewMatchmaking() *Matchmaking {
 func (m *Matchmaking) FindPlayerInGameRoom(name string) (*game.SpeedTypeRoom, int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	for _, room := range m.speedTypeRooms {
 		for _, player := range room.Players {
 			if player != nil && player.Name == name {
@@ -59,12 +60,12 @@ func (m *Matchmaking) FindPlayerInGameRoom(name string) (*game.SpeedTypeRoom, in
 	return nil, 0
 }
 
-func (m *Matchmaking) AddPlayer(name string, conn *Connection) int {
+func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	log.Printf("AddPlayer called for '%s'. speedTypeRooms=%d, mathSprintRooms=%d, clickSpeedRooms=%d, lobby=%d",
-		name, len(m.speedTypeRooms), len(m.mathSprintRooms), len(m.clickSpeedRooms), len(m.lobby))
+	log.Printf("AddPlayer called for '%s' in room '%s'. speedTypeRooms=%d, mathSprintRooms=%d, clickSpeedRooms=%d, lobby=%d",
+		name, roomCode, len(m.speedTypeRooms), len(m.mathSprintRooms), len(m.clickSpeedRooms), len(m.lobby))
 
 	// Check if player is in an active Speed Type game room (reconnection after redirect)
 	for _, room := range m.speedTypeRooms {
@@ -134,19 +135,28 @@ func (m *Matchmaking) AddPlayer(name string, conn *Connection) int {
 		}
 	}
 
-	// For lobby: Only allow 2 players max
-	if len(m.lobby) >= 2 {
-		log.Printf("Lobby is full (2 players), rejecting new player: %s", name)
+	// Count players in this room code
+	playersInRoom := 0
+	for _, lp := range m.lobby {
+		if lp.RoomCode == roomCode {
+			playersInRoom++
+		}
+	}
+
+	// For lobby: Only allow 2 players max per room code
+	if playersInRoom >= 2 {
+		log.Printf("Room '%s' is full (2 players), rejecting new player: %s", roomCode, name)
 		return 0
 	}
 
-	// Create new player - simple, no reconnection logic
+	// Create new player
 	playerID := m.nextPlayerID
 	m.nextPlayerID++
 
 	lp := &LobbyPlayer{
 		PlayerID: playerID,
 		Name:     name,
+		RoomCode: roomCode,
 		Conn:     conn,
 		Ready:    false,
 	}
@@ -157,12 +167,12 @@ func (m *Matchmaking) AddPlayer(name string, conn *Connection) int {
 	conn.speedTypeRoom = nil
 	m.connections[playerID] = conn
 
-	log.Printf("Added new player %d (%s) to lobby (total: %d)", playerID, name, len(m.lobby))
+	log.Printf("Added new player %d (%s) to room '%s' lobby (total: %d)", playerID, name, roomCode, len(m.lobby))
 
-	// Send welcome message with current lobby state
-	lobbyState := m.GetLobbyStateUnlocked()
+	// Send welcome message with current lobby state (filtered by room code)
+	lobbyState := m.GetLobbyStateUnlocked(roomCode)
 	conn.SendWelcome(playerID, "", lobbyState)
-	m.broadcastLobbyUpdateUnlocked()
+	m.broadcastLobbyUpdateUnlocked(roomCode)
 
 	return playerID
 }
@@ -271,10 +281,11 @@ func (m *Matchmaking) checkAndResetLobbyAfterGameUnlocked(currentPlayerName stri
 	// Delete the ended game room
 	delete(m.speedTypeRooms, endedGameRoom.ID)
 	
-	// Send updated lobby state to both players
-	lobbyState := m.GetLobbyStateUnlocked()
+	// Send updated lobby state to both players (using first player's room code)
+	roomCode := p1FromRoom.RoomCode
+	lobbyState := m.GetLobbyStateUnlocked(roomCode)
 	for _, lp := range m.lobby {
-		if lp.Conn != nil {
+		if lp.Conn != nil && lp.RoomCode == roomCode {
 			lp.Conn.SendWelcome(lp.PlayerID, "", lobbyState)
 			lp.Conn.SendLobbyUpdate(lobbyState)
 		}
@@ -306,16 +317,25 @@ func (m *Matchmaking) SetReady(playerID int, ready bool) bool {
 	}
 
 	player.Ready = ready
-	log.Printf("Player %d (%s) ready status changed to: %v", playerID, player.Name, ready)
+	roomCode := player.RoomCode
+	log.Printf("Player %d (%s) in room '%s' ready status changed to: %v", playerID, player.Name, roomCode, ready)
 	
 	// Broadcast lobby update first
-	m.broadcastLobbyUpdate()
+	m.broadcastLobbyUpdateUnlocked(roomCode)
 
-	// Check if we can start the game - need 2 players, selected game, and both ready
-	log.Printf("Checking if game can start: lobby has %d players", len(m.lobby))
-	if len(m.lobby) == 2 {
+	// Check if we can start the game - need 2 players in same room, selected game, and both ready
+	// Count players in this room
+	var playersInRoom []*LobbyPlayer
+	for _, lp := range m.lobby {
+		if lp.RoomCode == roomCode {
+			playersInRoom = append(playersInRoom, lp)
+		}
+	}
+	
+	log.Printf("Checking if game can start: room '%s' has %d players", roomCode, len(playersInRoom))
+	if len(playersInRoom) == 2 {
 		selectedGame := ""
-		for _, lp := range m.lobby {
+		for _, lp := range playersInRoom {
 			log.Printf("  Player %d (%s): SelectedGame='%s', Ready=%v", lp.PlayerID, lp.Name, lp.SelectedGame, lp.Ready)
 			if lp.SelectedGame != "" {
 				selectedGame = lp.SelectedGame
@@ -324,7 +344,7 @@ func (m *Matchmaking) SetReady(playerID int, ready bool) bool {
 		
 		if selectedGame != "" {
 		allReady := true
-		for _, lp := range m.lobby {
+			for _, lp := range playersInRoom {
 			if !lp.Ready {
 				allReady = false
 				break
@@ -332,18 +352,18 @@ func (m *Matchmaking) SetReady(playerID int, ready bool) bool {
 		}
 
 		if allReady {
-				log.Printf("All players ready! Starting game: %s", selectedGame)
-				m.startSelectedGameUnlocked(selectedGame)
+				log.Printf("All players in room '%s' ready! Starting game: %s", roomCode, selectedGame)
+				m.startSelectedGameUnlocked(selectedGame, roomCode)
 			return true
 			} else {
 				log.Printf("Not all players ready. Player 1 (%s) ready: %v, Player 2 (%s) ready: %v", 
-					m.lobby[0].Name, m.lobby[0].Ready, m.lobby[1].Name, m.lobby[1].Ready)
+					playersInRoom[0].Name, playersInRoom[0].Ready, playersInRoom[1].Name, playersInRoom[1].Ready)
 			}
 		} else {
 			log.Printf("Game cannot start: No game selected (selectedBy: %v)", m.selectedBy)
 		}
 	} else {
-		log.Printf("Game cannot start: Only %d players in lobby (need 2)", len(m.lobby))
+		log.Printf("Game cannot start: Only %d players in room '%s' (need 2)", len(playersInRoom), roomCode)
 	}
 
 	return false
@@ -369,13 +389,16 @@ func (m *Matchmaking) SelectGame(playerID int, gameType string) {
 		return
 	}
 
-	log.Printf("SelectGame: Found player %d (%s), setting game to %s for all players", playerID, player.Name, gameType)
+	roomCode := player.RoomCode
+	log.Printf("SelectGame: Found player %d (%s) in room '%s', setting game to %s", playerID, player.Name, roomCode, gameType)
 
-	// Set selected game for all players in lobby
+	// Set selected game for all players in the same room
 	for _, lp := range m.lobby {
-		lp.SelectedGame = gameType
-		lp.Ready = false // Reset ready status when game changes
-		log.Printf("  Set player %d (%s): SelectedGame='%s', Ready=false", lp.PlayerID, lp.Name, gameType)
+		if lp.RoomCode == roomCode {
+			lp.SelectedGame = gameType
+			lp.Ready = false // Reset ready status when game changes
+			log.Printf("  Set player %d (%s): SelectedGame='%s', Ready=false", lp.PlayerID, lp.Name, gameType)
+		}
 	}
 
 	// Store who selected the game
@@ -384,9 +407,9 @@ func (m *Matchmaking) SelectGame(playerID int, gameType string) {
 		Name:     player.Name,
 	}
 
-	// Broadcast game selection to all players
+	// Broadcast game selection to players in the same room
 	for _, lp := range m.lobby {
-		if lp.Conn != nil {
+		if lp.Conn != nil && lp.RoomCode == roomCode {
 			lp.Conn.SendMessage(net.GameSelectedMessage{
 				Type:     "gameSelected",
 				GameType: gameType,
@@ -396,25 +419,33 @@ func (m *Matchmaking) SelectGame(playerID int, gameType string) {
 	}
 
 	// Broadcast lobby update with selected game
-	m.broadcastLobbyUpdate()
-	log.Printf("SelectGame: Game selection complete and broadcasted")
+	m.broadcastLobbyUpdateUnlocked(roomCode)
+	log.Printf("SelectGame: Game selection complete and broadcasted to room '%s'", roomCode)
 }
 
-func (m *Matchmaking) startSelectedGame(gameType string) {
+func (m *Matchmaking) startSelectedGame(gameType string, roomCode string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.startSelectedGameUnlocked(gameType)
+	m.startSelectedGameUnlocked(gameType, roomCode)
 }
 
-func (m *Matchmaking) startSelectedGameUnlocked(gameType string) {
+func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string) {
 	// This function assumes the lock is already held by the caller
-	if len(m.lobby) != 2 {
-		log.Printf("Cannot start game: expected 2 players, got %d", len(m.lobby))
+	// Find the 2 players in this room
+	var playersInRoom []*LobbyPlayer
+	for _, lp := range m.lobby {
+		if lp.RoomCode == roomCode {
+			playersInRoom = append(playersInRoom, lp)
+		}
+	}
+	
+	if len(playersInRoom) != 2 {
+		log.Printf("Cannot start game in room '%s': expected 2 players, got %d", roomCode, len(playersInRoom))
 		return
 	}
 
-	p1 := m.lobby[0]
-	p2 := m.lobby[1]
+	p1 := playersInRoom[0]
+	p2 := playersInRoom[1]
 	
 	roomID := m.generateRoomID()
 
@@ -461,7 +492,7 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string) {
 		
 		time.Sleep(200 * time.Millisecond)
 		m.selectedBy = nil
-		m.lobby = make([]*LobbyPlayer, 0)
+		m.removePlayersFromLobby(roomCode)
 
 		log.Printf("Starting speed type game for room %s", roomID)
 		go m.startSpeedTypeGame(room, p1, p2)
@@ -492,7 +523,7 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string) {
 		
 		time.Sleep(200 * time.Millisecond)
 		m.selectedBy = nil
-		m.lobby = make([]*LobbyPlayer, 0)
+		m.removePlayersFromLobby(roomCode)
 
 		log.Printf("Starting math sprint game for room %s", roomID)
 		go m.startMathSprintGame(room, p1, p2)
@@ -523,7 +554,7 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string) {
 		
 		time.Sleep(200 * time.Millisecond)
 		m.selectedBy = nil
-		m.lobby = make([]*LobbyPlayer, 0)
+		m.removePlayersFromLobby(roomCode)
 
 		log.Printf("Starting click speed game for room %s", roomID)
 		go m.startClickSpeedGame(room, p1, p2)
@@ -531,6 +562,18 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string) {
 	default:
 		log.Printf("Unknown game type: %s", gameType)
 	}
+}
+
+// removePlayersFromLobby removes all players with the given room code from the lobby
+func (m *Matchmaking) removePlayersFromLobby(roomCode string) {
+	var newLobby []*LobbyPlayer
+	for _, lp := range m.lobby {
+		if lp.RoomCode != roomCode {
+			newLobby = append(newLobby, lp)
+		}
+	}
+	m.lobby = newLobby
+	log.Printf("Removed players from room '%s', lobby now has %d players", roomCode, len(m.lobby))
 }
 
 func (m *Matchmaking) startSpeedTypeGame(room *game.SpeedTypeRoom, p1, p2 *LobbyPlayer) {
@@ -542,7 +585,7 @@ func (m *Matchmaking) startSpeedTypeGame(room *game.SpeedTypeRoom, p1, p2 *Lobby
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	maxRounds := 2
+	maxRounds := 5
 
 	// Start rounds
 	for round := 1; round <= maxRounds; round++ {
@@ -633,7 +676,7 @@ func (m *Matchmaking) startMathSprintGame(room *game.MathSprintRoom, p1, p2 *Lob
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	maxRounds := 2
+	maxRounds := 5
 	
 	for round := 1; round <= maxRounds; round++ {
 		room.StartRound()
@@ -745,7 +788,7 @@ func (m *Matchmaking) startClickSpeedGame(room *game.ClickSpeedRoom, p1, p2 *Lob
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	maxRounds := 2
+	maxRounds := 5
 	
 	for round := 1; round <= maxRounds; round++ {
 		room.StartRound()
@@ -922,18 +965,26 @@ func (m *Matchmaking) startGame() {
 	p2.Conn.SendWelcome(p2.PlayerID, roomID, nil)
 }
 
-func (m *Matchmaking) GetLobbyState() *net.LobbyState {
+func (m *Matchmaking) GetLobbyState(roomCode string) *net.LobbyState {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.GetLobbyStateUnlocked()
+	return m.GetLobbyStateUnlocked(roomCode)
 }
 
-func (m *Matchmaking) GetLobbyStateUnlocked() *net.LobbyState {
-	log.Printf("GetLobbyState: lobby has %d players", len(m.lobby))
-	players := make([]net.LobbyPlayer, len(m.lobby))
+func (m *Matchmaking) GetLobbyStateUnlocked(roomCode string) *net.LobbyState {
+	// Filter players by room code
+	var filteredPlayers []*LobbyPlayer
+	for _, lp := range m.lobby {
+		if lp.RoomCode == roomCode {
+			filteredPlayers = append(filteredPlayers, lp)
+		}
+	}
+	
+	log.Printf("GetLobbyState for room '%s': %d players (total lobby: %d)", roomCode, len(filteredPlayers), len(m.lobby))
+	players := make([]net.LobbyPlayer, len(filteredPlayers))
 	selectedGame := ""
 	
-	for i, lp := range m.lobby {
+	for i, lp := range filteredPlayers {
 		players[i] = net.LobbyPlayer{
 			ID:    lp.PlayerID,
 			Name:  lp.Name,
@@ -962,8 +1013,8 @@ func (m *Matchmaking) GetLobbyStateUnlocked() *net.LobbyState {
 	}
 
 	return &net.LobbyState{
-		Players:     players,
-		State:       state,
+		Players:      players,
+		State:        state,
 		SelectedGame: selectedGame,
 		SelectedBy:   m.selectedBy,
 	}
@@ -1041,28 +1092,25 @@ func (m *Matchmaking) getRoomConnectionsUnlocked(room *game.SpeedTypeRoom) []*Co
 	return conns
 }
 
-func (m *Matchmaking) broadcastLobbyUpdate() {
-	// This function assumes the lock is already held by the caller
-	m.broadcastLobbyUpdateUnlocked()
-}
 
-func (m *Matchmaking) broadcastLobbyUpdateUnlocked() {
+func (m *Matchmaking) broadcastLobbyUpdateUnlocked(roomCode string) {
 	// This function assumes the lock is already held by the caller
-	lobbyState := m.GetLobbyStateUnlocked()
-	log.Printf("Broadcasting lobby update: %d players", len(lobbyState.Players))
+	// Only broadcast to players in the same room
+	lobbyState := m.GetLobbyStateUnlocked(roomCode)
+	log.Printf("Broadcasting lobby update to room '%s': %d players", roomCode, len(lobbyState.Players))
 	for _, lp := range m.lobby {
-		if lp.Conn != nil {
+		if lp.Conn != nil && lp.RoomCode == roomCode {
 			log.Printf("Sending lobby update to player %d (%s)", lp.PlayerID, lp.Name)
 			lp.Conn.SendLobbyUpdate(lobbyState)
 		}
 	}
 }
 
-func (m *Matchmaking) BroadcastLobbyUpdate() {
+func (m *Matchmaking) BroadcastLobbyUpdate(roomCode string) {
 	// Public method that acquires the lock
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.broadcastLobbyUpdateUnlocked()
+	m.broadcastLobbyUpdateUnlocked(roomCode)
 }
 
 func (m *Matchmaking) generateRoomID() string {
@@ -1093,19 +1141,22 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 	// Find and remove player from lobby
 	for i, lp := range m.lobby {
 		if lp.PlayerID == playerID && lp.Conn == conn {
+			roomCode := lp.RoomCode
 			m.lobby = append(m.lobby[:i], m.lobby[i+1:]...)
-			log.Printf("Player %d removed from lobby, %d players remaining", playerID, len(m.lobby))
+			log.Printf("Player %d removed from lobby (room '%s'), %d players remaining", playerID, roomCode, len(m.lobby))
 			
 			// Clear selected game if the player who selected it left
 			if m.selectedBy != nil && m.selectedBy.PlayerID == playerID {
 				m.selectedBy = nil
-				for _, lp := range m.lobby {
-					lp.SelectedGame = ""
-					lp.Ready = false
+				for _, remaining := range m.lobby {
+					if remaining.RoomCode == roomCode {
+						remaining.SelectedGame = ""
+						remaining.Ready = false
+					}
 				}
 			}
 			
-			m.broadcastLobbyUpdateUnlocked()
+			m.broadcastLobbyUpdateUnlocked(roomCode)
 			break
 		}
 	}

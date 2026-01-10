@@ -248,16 +248,16 @@ func HandleWebSocketWithAuth(mm *Matchmaking, sessionStore *SessionStore) http.H
 
 		c := NewConnection(conn, mm, session)
 		
-		log.Printf("Client connected: %s", session.PlayerName)
+		log.Printf("Client connected: %s (room: %s)", session.PlayerName, session.RoomCode)
 		
 		// Add player immediately when they connect (handles both lobby and game page connections)
-		playerID := mm.AddPlayer(session.PlayerName, c)
+		playerID := mm.AddPlayer(session.PlayerName, session.RoomCode, c)
 		if playerID == 0 {
-			log.Printf("Failed to add player: %s (lobby may be full or error)", session.PlayerName)
+			log.Printf("Failed to add player: %s in room %s (room may be full or error)", session.PlayerName, session.RoomCode)
 			conn.Close()
 			return
 		}
-		log.Printf("Player added with ID %d, name: %s", playerID, session.PlayerName)
+		log.Printf("Player added with ID %d, name: %s, room: %s", playerID, session.PlayerName, session.RoomCode)
 		
 		go c.writePump()
 		go c.readPump()

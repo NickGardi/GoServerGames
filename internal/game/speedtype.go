@@ -6,35 +6,50 @@ import (
 	"time"
 )
 
-// Challenging words for Speed Type game (minimum 6 letters)
+// Words and phrases for Speed Type game
 var SpeedTypeWords = []string{
-	// Common but tricky
+	// Single words - common but long
 	"keyboard", "challenge", "practice", "computer", "accuracy", "improve",
-	"quickly", "through", "another", "because", "between", "different",
-	"important", "question", "business", "government", "development",
-	// Technical terms
-	"algorithm", "database", "interface", "variable", "function", "parameter",
-	"software", "hardware", "network", "protocol", "encryption", "authentication",
-	"framework", "repository", "deployment", "integration", "configuration",
-	// Longer words
-	"accomplished", "acknowledge", "approximately", "architectural", "battlefield",
-	"bureaucracy", "catastrophe", "circumstance", "collaboration", "communication",
-	"comprehensive", "consciousness", "consequence", "contemporary", "contribution",
-	"controversial", "determination", "disappointment", "discrimination", "effectiveness",
-	// Tricky spelling
-	"necessary", "definitely", "separate", "occurrence", "accommodate", "millennium",
-	"recommend", "persistence", "maintenance", "surveillance", "mischievous",
-	"conscientious", "entrepreneur", "pharmaceutical", "photosynthesis", "psychological",
-	// Programming related
-	"javascript", "typescript", "concurrent", "asynchronous", "middleware",
-	"microservice", "kubernetes", "containerization", "virtualization", "infrastructure",
-	"optimization", "performance", "scalability", "reliability", "availability",
-	// Mixed difficulty
-	"achievement", "advertisement", "appropriate", "atmosphere", "characteristic",
-	"demonstrate", "environment", "experience", "extraordinary", "fundamental",
-	"imagination", "independent", "investigation", "opportunity", "organization",
-	"particularly", "professional", "relationship", "responsibility", "significant",
-	"temperature", "understanding", "unfortunately", "immediately", "occasionally",
+	"important", "question", "business", "development", "information",
+	"understand", "something", "everything", "different", "together",
+	"beautiful", "wonderful", "fantastic", "amazing", "incredible",
+	"adventure", "celebrate", "chocolate", "dangerous", "education",
+	"friendship", "happiness", "knowledge", "lightning", "memorable",
+	"newspaper", "operation", "perfectly", "questions", "recognize",
+	"something", "telephone", "universe", "vegetable", "waterfall",
+	"yesterday", "afternoon", "breakfast", "butterfly", "celebrate",
+	"community", "dangerous", "education", "excellent", "furniture",
+	"generation", "highlight", "important", "journalist", "kilometer",
+	// Technical terms (easy spelling)
+	"software", "hardware", "network", "computer", "internet", "database",
+	"keyboard", "monitor", "download", "password", "username", "homepage",
+	"bluetooth", "wireless", "streaming", "download", "upload", "storage",
+	// Short phrases (3-5 words)
+	"the quick brown fox", "jump over the fence", "hello world program",
+	"good morning everyone", "nice to meet you", "have a great day",
+	"thank you very much", "see you later", "what time is it",
+	"i love coding", "this is amazing", "keep up the work",
+	"never give up", "try your best", "you can do it",
+	"practice makes perfect", "time to code", "lets get started",
+	"ready set go", "on your marks", "time flies fast",
+	"break a leg", "fingers crossed", "piece of cake",
+	"easy as pie", "hit the road", "under the weather",
+	"once upon time", "happily ever after", "the end is near",
+	"back to basics", "now or never", "better late than never",
+	"actions speak louder", "all in all", "at the moment",
+	"by the way", "come what may", "day by day",
+	"every now and then", "for the record", "get the ball rolling",
+	"in a nutshell", "just in case", "keep in mind",
+	"little by little", "make up mind", "no pain no gain",
+	"out of sight", "point of view", "quite a few",
+	"sooner or later", "take it easy", "up and running",
+	"work in progress", "zero to hero", "best of luck",
+	// More single words
+	"absolutely", "background", "calculation", "decoration", "electronic",
+	"foundation", "government", "helicopter", "illustration", "journalism",
+	"kindergarten", "laboratory", "mathematics", "neighborhood", "observation",
+	"participate", "quarantine", "restaurant", "satisfaction", "technology",
+	"underneath", "vocabulary", "watermelon", "xylophone", "yellowstone",
 }
 
 type SpeedTypePlayer struct {

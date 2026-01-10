@@ -50,10 +50,16 @@ func main() {
 		var req struct {
 			Username string `json:"username"`
 			Password string `json:"password"`
+			RoomCode string `json:"roomCode"`
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		if req.RoomCode == "" {
+			http.Error(w, "Room code is required", http.StatusBadRequest)
 			return
 		}
 
@@ -68,7 +74,7 @@ func main() {
 			return
 		}
 
-		session, err := sessionStore.CreateSession(req.Username)
+		session, err := sessionStore.CreateSession(req.Username, req.RoomCode)
 		if err != nil {
 			http.Error(w, "Failed to create session", http.StatusInternalServerError)
 			return

@@ -14,9 +14,10 @@ const (
 )
 
 type Session struct {
-	ID        string
+	ID         string
 	PlayerName string
-	CreatedAt time.Time
+	RoomCode   string
+	CreatedAt  time.Time
 }
 
 type SessionStore struct {
@@ -33,7 +34,7 @@ func NewSessionStore() *SessionStore {
 	return ss
 }
 
-func (ss *SessionStore) CreateSession(playerName string) (*Session, error) {
+func (ss *SessionStore) CreateSession(playerName, roomCode string) (*Session, error) {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
 
@@ -45,6 +46,7 @@ func (ss *SessionStore) CreateSession(playerName string) (*Session, error) {
 	session := &Session{
 		ID:         sessionID,
 		PlayerName: playerName,
+		RoomCode:   roomCode,
 		CreatedAt:  time.Now(),
 	}
 

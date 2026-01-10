@@ -7,9 +7,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
+        const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
 
         if (!username) {
             errorDiv.textContent = 'Username is required';
+            return;
+        }
+
+        if (!roomCode) {
+            errorDiv.textContent = 'Room code is required';
             return;
         }
 
@@ -21,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ username, password, roomCode }),
             });
 
             if (response.ok) {
@@ -38,4 +44,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
