@@ -1,5 +1,16 @@
 /* Click Speed specific styles */
 
+.game-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.game-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
 .click-arena {
     position: relative;
     min-height: 500px;
@@ -8,6 +19,9 @@
     cursor: crosshair;
     overflow: hidden;
     user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .click-arena::before {
@@ -99,16 +113,7 @@
     }
 }
 
-/* Pulse animation for waiting */
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.6;
-    }
-    50% {
-        opacity: 1;
-    }
-}
-
+/* Status overlay */
 .click-arena .status-overlay {
     position: absolute;
     top: 0;
@@ -120,8 +125,10 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
+    border-radius: 20px;
 }
 
+/* Results area */
 .click-arena .results-area {
     position: absolute;
     top: 50%;
@@ -132,6 +139,51 @@
     border-radius: 20px;
     border: 2px solid #475569;
     z-index: 5;
+    text-align: center;
+}
+
+.result-title {
+    font-size: 1.8rem;
+    margin-bottom: 25px;
+    font-weight: bold;
+}
+
+.result-title.winner {
+    color: #10b981;
+}
+
+.result-title.loser {
+    color: #ef4444;
+}
+
+.result-title.tie {
+    color: #f59e0b;
+}
+
+.result-times {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    margin-bottom: 10px;
+}
+
+.result-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.result-player {
+    color: #94a3b8;
+    font-size: 1rem;
+}
+
+.result-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #f1f5f9;
+    font-family: 'Courier New', monospace;
 }
 
 /* Round breakdown specific for click speed */
@@ -145,4 +197,3 @@
     font-family: 'Courier New', monospace;
     font-weight: bold;
 }
-

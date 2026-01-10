@@ -8,6 +8,7 @@ class MathSprintClient {
         this.startTime = null;
         this.roundActive = false;
         this.countdownActive = false;
+        this.hasSubmitted = false; // Track if we've submitted for current question
         this.scores = { player1: 0, player2: 0 };
         this.playerIDs = { player1: null, player2: null };
         this.playerNames = { player1: 'You', player2: 'Opponent' };
@@ -25,7 +26,6 @@ class MathSprintClient {
 
         this.ws.onmessage = (event) => {
             const msg = JSON.parse(event.data);
-            console.log('Received message:', msg.type, msg.state);
             this.handleMessage(msg);
         };
 
@@ -66,8 +66,6 @@ class MathSprintClient {
     }
 
     handleGameState(msg) {
-        console.log('Game state:', msg.state, 'question:', msg.question, 'roundActive:', this.roundActive);
-        
         // Update scores and player names
         if (msg.scores) {
             msg.scores.forEach(score => {
@@ -87,8 +85,6 @@ class MathSprintClient {
             });
         }
 
-        this.currentState = msg.state;
-
         switch (msg.state) {
             case 'waiting':
                 this.showStatusOverlay('Waiting for opponent...');
@@ -98,6 +94,7 @@ class MathSprintClient {
                 this.hideStatusOverlay();
                 this.countdownActive = false;
                 this.roundActive = false;
+                this.hasSubmitted = false;
                 this.currentQuestion = '';
                 document.getElementById('questionDisplay').style.display = 'none';
                 document.getElementById('resultsArea').style.display = 'none';
@@ -105,8 +102,9 @@ class MathSprintClient {
                 break;
                 
             case 'playing':
-                // Start countdown if we have a new question and aren't already in a round
-                if (msg.question && !this.roundActive && !this.countdownActive) {
+                // Only start if we have a NEW question and haven't submitted yet
+                if (msg.question && msg.question !== this.currentQuestion && !this.hasSubmitted && !this.countdownActive) {
+                    this.currentQuestion = msg.question;
                     this.showCountdownBeforeRound(msg.question);
                 }
                 break;
@@ -114,18 +112,20 @@ class MathSprintClient {
             case 'results':
                 this.countdownActive = false;
                 this.roundActive = false;
+                this.hasSubmitted = false;
                 if (msg.roundResult) {
                     this.showResults(msg.roundResult);
                 }
                 break;
         }
+        
+        this.currentState = msg.state;
     }
 
     showCountdownBeforeRound(question) {
         if (this.countdownActive) return;
         
         this.countdownActive = true;
-        this.currentQuestion = question;
         let countdown = 3;
         
         // Show question faded during countdown
@@ -152,16 +152,15 @@ class MathSprintClient {
     }
 
     startRound(question) {
-        console.log('Starting round with question:', question);
-        this.currentQuestion = question;
         this.roundActive = true;
+        this.hasSubmitted = false;
         this.startTime = Date.now();
         
         // Show question and input
         document.getElementById('questionDisplay').style.display = 'block';
         document.getElementById('questionText').textContent = question;
         document.getElementById('questionText').style.opacity = '1';
-        document.querySelector('.input-area').style.display = 'block';
+        document.querySelector('.input-area').style.display = 'flex';
         document.getElementById('resultsArea').style.display = 'none';
         
         this.hideStatusOverlay();
@@ -169,14 +168,13 @@ class MathSprintClient {
         // Setup input
         const input = document.getElementById('answerInput');
         input.value = '';
-        input.style.color = '';
         input.classList.remove('correct', 'wrong');
         input.disabled = false;
         input.focus();
     }
 
     submitAnswer() {
-        if (!this.roundActive) return;
+        if (!this.roundActive || this.hasSubmitted) return;
         
         const input = document.getElementById('answerInput');
         const answer = parseInt(input.value, 10);
@@ -184,7 +182,6 @@ class MathSprintClient {
         if (isNaN(answer)) return;
         
         const timeMs = Date.now() - this.startTime;
-        console.log('Submitting answer:', answer, 'time:', timeMs);
         
         this.ws.send(JSON.stringify({
             type: 'mathSprintSubmit',
@@ -192,9 +189,10 @@ class MathSprintClient {
             timeMs: timeMs
         }));
         
-        // Disable input while waiting
-        input.disabled = true;
+        // Mark as submitted and disable input
+        this.hasSubmitted = true;
         this.roundActive = false;
+        input.disabled = true;
         
         this.showStatusOverlay('Waiting for opponent...');
     }
@@ -243,8 +241,6 @@ class MathSprintClient {
     showGameSummary(summary) {
         document.querySelector('.game-area').style.display = 'none';
         document.querySelector('.game-header').style.display = 'none';
-        document.getElementById('resultsArea').style.display = 'none';
-        document.getElementById('statusOverlay').style.display = 'none';
         document.getElementById('gameSummary').style.display = 'block';
 
         const isPlayer1 = this.playerID === summary.player1Id;

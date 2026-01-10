@@ -1,34 +1,62 @@
 /* Math Sprint specific styles */
 
+.game-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.game-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.game-area {
+    position: relative;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 20px;
+    padding: 40px;
+}
+
 .question-display {
     text-align: center;
-    margin: 40px 0;
+    margin: 20px 0 30px 0;
 }
 
 .question-label {
-    font-size: 1.2rem;
-    color: #94a3b8;
-    margin-bottom: 20px;
+    font-size: 1rem;
+    color: #64748b;
+    margin-bottom: 15px;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
 }
 
 .question-text {
-    font-size: 4rem;
+    font-size: 3.5rem;
     font-weight: bold;
     color: #818cf8;
     font-family: 'Courier New', monospace;
-    text-shadow: 0 0 30px rgba(129, 140, 248, 0.3);
-    letter-spacing: 4px;
+    text-shadow: 0 0 40px rgba(129, 140, 248, 0.4);
+    letter-spacing: 6px;
+}
+
+.input-area {
+    display: flex;
+    justify-content: center;
+    width: 100%;
 }
 
 .answer-input {
-    width: 100%;
-    max-width: 300px;
-    padding: 20px 30px;
-    font-size: 2rem;
+    width: 250px;
+    padding: 18px 25px;
+    font-size: 1.8rem;
     text-align: center;
-    background: rgba(30, 41, 59, 0.8);
+    background: rgba(30, 41, 59, 0.9);
     border: 2px solid #475569;
     border-radius: 12px;
     color: #f1f5f9;
@@ -46,27 +74,77 @@
 
 .answer-input:focus {
     border-color: #818cf8;
-    box-shadow: 0 0 20px rgba(129, 140, 248, 0.3);
+    box-shadow: 0 0 25px rgba(129, 140, 248, 0.4);
 }
 
 .answer-input.correct {
     border-color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(16, 185, 129, 0.15);
 }
 
 .answer-input.wrong {
     border-color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.15);
 }
 
-.correct-answer {
-    margin-top: 20px;
-    font-size: 1.2rem;
-    color: #10b981;
+/* Results area */
+.results-area {
+    text-align: center;
+    padding: 30px;
+}
+
+.result-title {
+    font-size: 1.8rem;
+    margin-bottom: 25px;
     font-weight: bold;
 }
 
-/* Round item styles for math */
+.result-title.winner {
+    color: #10b981;
+}
+
+.result-title.loser {
+    color: #ef4444;
+}
+
+.result-title.tie {
+    color: #f59e0b;
+}
+
+.result-times {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    margin-bottom: 20px;
+}
+
+.result-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.result-player {
+    color: #94a3b8;
+    font-size: 1rem;
+}
+
+.result-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #f1f5f9;
+    font-family: 'Courier New', monospace;
+}
+
+.correct-answer {
+    margin-top: 15px;
+    font-size: 1.1rem;
+    color: #10b981;
+    font-weight: 500;
+}
+
+/* Round breakdown styles for math */
 .round-item .round-question {
     color: #818cf8;
     font-family: 'Courier New', monospace;
@@ -77,4 +155,3 @@
     color: #10b981;
     font-weight: bold;
 }
-
