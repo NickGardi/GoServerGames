@@ -22,12 +22,7 @@ class SpeedTypeClient {
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
-            console.log('WebSocket connected');
-            this.sendMessage({
-                type: 'hello',
-                name: 'Player',
-                version: 1
-            });
+            console.log('WebSocket connected - waiting for welcome message');
         };
 
         this.ws.onmessage = (event) => {
@@ -68,12 +63,12 @@ class SpeedTypeClient {
         switch (msg.type) {
             case 'welcome':
                 this.playerID = msg.playerId;
+                console.log('Welcome received: playerId=', msg.playerId, 'roomId=', msg.roomId);
                 if (msg.roomId) {
                     this.hideStatusOverlay();
                 } else {
-                    // No roomId means we're being returned to login
-                    console.log('No roomId - redirecting to login...');
-                    window.location.replace('/');
+                    // No roomId - might be in lobby or game starting, wait for state message
+                    console.log('No roomId in welcome - waiting for state message');
                 }
                 break;
             case 'redirect':
