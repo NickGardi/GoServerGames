@@ -617,6 +617,23 @@ func (m *Matchmaking) startSpeedTypeGame(room *game.SpeedTypeRoom, p1, p2 *Lobby
 
 	// Start rounds
 	for round := 1; round <= maxRounds; round++ {
+		// Check if room still exists and game hasn't ended
+		m.mu.Lock()
+		if _, exists := m.speedTypeRooms[room.ID]; !exists || room.GameEnded {
+			m.mu.Unlock()
+			log.Printf("Game loop exiting: room %s no longer exists or game ended", room.ID)
+			return
+		}
+		
+		// Check if there are any active connections before starting round
+		activeConns := m.getRoomConnectionsUnlocked(room)
+		if len(activeConns) == 0 {
+			m.mu.Unlock()
+			log.Printf("Game loop exiting: no active connections for room %s", room.ID)
+			return
+		}
+		m.mu.Unlock()
+		
 		room.StartRound()
 		log.Printf("Started round %d/%d for room %s", round, maxRounds, room.ID)
 
@@ -625,6 +642,22 @@ func (m *Matchmaking) startSpeedTypeGame(room *game.SpeedTypeRoom, p1, p2 *Lobby
 
 		// Wait for both players to submit (state changes to "results")
 		for room.State != "results" {
+			// Check before each broadcast if we should continue
+			m.mu.Lock()
+			if _, exists := m.speedTypeRooms[room.ID]; !exists || room.GameEnded {
+				m.mu.Unlock()
+				log.Printf("Game loop exiting: room %s no longer exists or game ended", room.ID)
+				return
+			}
+			
+			activeConns := m.getRoomConnectionsUnlocked(room)
+			if len(activeConns) == 0 {
+				m.mu.Unlock()
+				log.Printf("Game loop exiting: no active connections for room %s", room.ID)
+				return
+			}
+			m.mu.Unlock()
+			
 			<-ticker.C
 			m.broadcastSpeedTypeState(room)
 		}
@@ -707,12 +740,45 @@ func (m *Matchmaking) startMathSprintGame(room *game.MathSprintRoom, p1, p2 *Lob
 	maxRounds := 5
 	
 	for round := 1; round <= maxRounds; round++ {
+		// Check if room still exists and game hasn't ended
+		m.mu.Lock()
+		if _, exists := m.mathSprintRooms[room.ID]; !exists || room.GameEnded {
+			m.mu.Unlock()
+			log.Printf("Math sprint game loop exiting: room %s no longer exists or game ended", room.ID)
+			return
+		}
+		
+		// Check if there are any active connections before starting round
+		activeConns := m.getMathRoomConnectionsUnlocked(room)
+		if len(activeConns) == 0 {
+			m.mu.Unlock()
+			log.Printf("Math sprint game loop exiting: no active connections for room %s", room.ID)
+			return
+		}
+		m.mu.Unlock()
+		
 		room.StartRound()
 		log.Printf("Math sprint round %d/%d for room %s", round, maxRounds, room.ID)
 
 		m.broadcastMathSprintState(room)
 
 		for room.State != "results" {
+			// Check before each broadcast if we should continue
+			m.mu.Lock()
+			if _, exists := m.mathSprintRooms[room.ID]; !exists || room.GameEnded {
+				m.mu.Unlock()
+				log.Printf("Math sprint game loop exiting: room %s no longer exists or game ended", room.ID)
+				return
+			}
+			
+			activeConns := m.getMathRoomConnectionsUnlocked(room)
+			if len(activeConns) == 0 {
+				m.mu.Unlock()
+				log.Printf("Math sprint game loop exiting: no active connections for room %s", room.ID)
+				return
+			}
+			m.mu.Unlock()
+			
 			<-ticker.C
 			m.broadcastMathSprintState(room)
 		}
@@ -727,7 +793,7 @@ func (m *Matchmaking) startMathSprintGame(room *game.MathSprintRoom, p1, p2 *Lob
 		}
 
 		time.Sleep(3 * time.Second)
-		room.ResetReadyForNext()
+					room.ResetReadyForNext()
 					room.State = "ready"
 	}
 	
@@ -819,12 +885,45 @@ func (m *Matchmaking) startClickSpeedGame(room *game.ClickSpeedRoom, p1, p2 *Lob
 	maxRounds := 5
 	
 	for round := 1; round <= maxRounds; round++ {
+		// Check if room still exists and game hasn't ended
+		m.mu.Lock()
+		if _, exists := m.clickSpeedRooms[room.ID]; !exists || room.GameEnded {
+			m.mu.Unlock()
+			log.Printf("Click speed game loop exiting: room %s no longer exists or game ended", room.ID)
+			return
+		}
+		
+		// Check if there are any active connections before starting round
+		activeConns := m.getClickRoomConnectionsUnlocked(room)
+		if len(activeConns) == 0 {
+			m.mu.Unlock()
+			log.Printf("Click speed game loop exiting: no active connections for room %s", room.ID)
+			return
+		}
+		m.mu.Unlock()
+		
 		room.StartRound()
 		log.Printf("Click speed round %d/%d for room %s", round, maxRounds, room.ID)
 
 		m.broadcastClickSpeedState(room)
 
 		for room.State != "results" {
+			// Check before each broadcast if we should continue
+			m.mu.Lock()
+			if _, exists := m.clickSpeedRooms[room.ID]; !exists || room.GameEnded {
+				m.mu.Unlock()
+				log.Printf("Click speed game loop exiting: room %s no longer exists or game ended", room.ID)
+				return
+			}
+			
+			activeConns := m.getClickRoomConnectionsUnlocked(room)
+			if len(activeConns) == 0 {
+				m.mu.Unlock()
+				log.Printf("Click speed game loop exiting: no active connections for room %s", room.ID)
+				return
+			}
+			m.mu.Unlock()
+			
 			<-ticker.C
 			m.broadcastClickSpeedState(room)
 		}
