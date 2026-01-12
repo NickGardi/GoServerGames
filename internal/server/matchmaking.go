@@ -757,7 +757,7 @@ func (m *Matchmaking) startMathSprintGame(room *game.MathSprintRoom, p1, p2 *Lob
 	stopBroadcasting := make(chan bool)
 	go func() {
 		for {
-			select {
+				select {
 			case <-broadcastTicker.C:
 				m.mu.Lock()
 				if _, exists := m.mathSprintRooms[room.ID]; !exists || room.GameEnded {
@@ -1384,6 +1384,8 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 		log.Printf("Removed connection for player %d", playerID)
 		
 		// Check if this player was in a game room, and mark room as ended if no active connections remain
+		// BUT only if the game has actually started (not in "waiting" or "ready" state)
+		// This prevents marking rooms as ended during the redirect phase when players temporarily disconnect
 		if conn.speedTypeRoom != nil && !conn.speedTypeRoom.GameEnded {
 			room := conn.speedTypeRoom
 			hasActiveConnections := false
@@ -1395,9 +1397,13 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 		}
 				}
 			}
-			if !hasActiveConnections {
+			// Only mark as ended if no active connections AND game has started (past "waiting"/"ready")
+			// This allows players to reconnect after redirect without the room being prematurely ended
+			if !hasActiveConnections && room.State != "waiting" && room.State != "ready" {
 				room.GameEnded = true
-				log.Printf("Marked speed type room %s as ended - all players disconnected", room.ID)
+				log.Printf("Marked speed type room %s as ended - all players disconnected (state: %s)", room.ID, room.State)
+			} else if !hasActiveConnections {
+				log.Printf("Not marking speed type room %s as ended - waiting for reconnection (state: %s)", room.ID, room.State)
 			}
 		}
 		if conn.mathSprintRoom != nil && !conn.mathSprintRoom.GameEnded {
@@ -1411,9 +1417,13 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 					}
 				}
 			}
-			if !hasActiveConnections {
+			// Only mark as ended if no active connections AND game has started (past "waiting"/"ready")
+			// This allows players to reconnect after redirect without the room being prematurely ended
+			if !hasActiveConnections && room.State != "waiting" && room.State != "ready" {
 				room.GameEnded = true
-				log.Printf("Marked math sprint room %s as ended - all players disconnected", room.ID)
+				log.Printf("Marked math sprint room %s as ended - all players disconnected (state: %s)", room.ID, room.State)
+			} else if !hasActiveConnections {
+				log.Printf("Not marking math sprint room %s as ended - waiting for reconnection (state: %s)", room.ID, room.State)
 			}
 		}
 		if conn.clickSpeedRoom != nil && !conn.clickSpeedRoom.GameEnded {
@@ -1427,9 +1437,13 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 					}
 				}
 			}
-			if !hasActiveConnections {
+			// Only mark as ended if no active connections AND game has started (past "waiting"/"ready")
+			// This allows players to reconnect after redirect without the room being prematurely ended
+			if !hasActiveConnections && room.State != "waiting" && room.State != "ready" {
 				room.GameEnded = true
-				log.Printf("Marked click speed room %s as ended - all players disconnected", room.ID)
+				log.Printf("Marked click speed room %s as ended - all players disconnected (state: %s)", room.ID, room.State)
+			} else if !hasActiveConnections {
+				log.Printf("Not marking click speed room %s as ended - waiting for reconnection (state: %s)", room.ID, room.State)
 			}
 		}
 	} else {
