@@ -495,18 +495,25 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string
 	log.Printf("Starting game %s in room %s with players: %s (%d) vs %s (%d)", 
 		gameType, roomID, p1.Name, p1.PlayerID, p2.Name, p2.PlayerID)
 
-	// Get connections from the connections map - this is the source of truth
-	conn1, ok1 := m.connections[p1.PlayerID]
-	conn2, ok2 := m.connections[p2.PlayerID]
+	// Use connections directly from lobby players - these are guaranteed to be current
+	conn1 := p1.Conn
+	conn2 := p2.Conn
 	
-	if !ok1 || conn1 == nil {
-		log.Printf("ERROR: Player 1 (%d) connection not found in map!", p1.PlayerID)
+	if conn1 == nil {
+		log.Printf("ERROR: Player 1 (%d, %s) connection is nil!", p1.PlayerID, p1.Name)
 		return
 	}
-	if !ok2 || conn2 == nil {
-		log.Printf("ERROR: Player 2 (%d) connection not found in map!", p2.PlayerID)
+	if conn2 == nil {
+		log.Printf("ERROR: Player 2 (%d, %s) connection is nil!", p2.PlayerID, p2.Name)
 		return
 	}
+
+	// Update connections map to match (in case of any mismatch)
+	m.connections[p1.PlayerID] = conn1
+	m.connections[p2.PlayerID] = conn2
+
+	log.Printf("Using connections: P1 (%d, %s) conn=%p, P2 (%d, %s) conn=%p", 
+		p1.PlayerID, p1.Name, conn1, p2.PlayerID, p2.Name, conn2)
 
 	switch gameType {
 	case "speedtype":
@@ -530,8 +537,10 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string
 			RoomID:   roomID,
 		}
 		
+		log.Printf("Sending gameStart to P1 (%d, %s) and P2 (%d, %s)", p1.PlayerID, p1.Name, p2.PlayerID, p2.Name)
 		conn1.SendMessage(gameStartMsg)
 		conn2.SendMessage(gameStartMsg)
+		log.Printf("gameStart messages sent to both players")
 		
 		time.Sleep(200 * time.Millisecond)
 		m.selectedBy = nil
@@ -561,8 +570,10 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string
 			RoomID:   roomID,
 		}
 		
+		log.Printf("Sending gameStart to P1 (%d, %s) and P2 (%d, %s)", p1.PlayerID, p1.Name, p2.PlayerID, p2.Name)
 		conn1.SendMessage(gameStartMsg)
 		conn2.SendMessage(gameStartMsg)
+		log.Printf("gameStart messages sent to both players")
 		
 		time.Sleep(200 * time.Millisecond)
 		m.selectedBy = nil
@@ -592,8 +603,10 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string
 			RoomID:   roomID,
 		}
 		
+		log.Printf("Sending gameStart to P1 (%d, %s) and P2 (%d, %s)", p1.PlayerID, p1.Name, p2.PlayerID, p2.Name)
 		conn1.SendMessage(gameStartMsg)
 		conn2.SendMessage(gameStartMsg)
+		log.Printf("gameStart messages sent to both players")
 		
 		time.Sleep(200 * time.Millisecond)
 		m.selectedBy = nil
