@@ -61,8 +61,12 @@ func (m *Matchmaking) FindPlayerInGameRoom(name string) (*game.SpeedTypeRoom, in
 }
 
 func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) int {
+	log.Printf("AddPlayer ENTRY: name='%s', roomCode='%s'", name, roomCode)
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	defer func() {
+		m.mu.Unlock()
+		log.Printf("AddPlayer EXIT: name='%s', roomCode='%s'", name, roomCode)
+	}()
 
 	// Validate room code is not empty
 	if roomCode == "" {

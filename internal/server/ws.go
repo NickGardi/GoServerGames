@@ -263,7 +263,9 @@ func HandleWebSocketWithAuth(mm *Matchmaking, sessionStore *SessionStore) http.H
 		log.Printf("Client connected: %s (room: %s)", session.PlayerName, session.RoomCode)
 		
 		// Add player immediately when they connect (handles both lobby and game page connections)
+		log.Printf("About to call AddPlayer for %s in room %s", session.PlayerName, session.RoomCode)
 		playerID := mm.AddPlayer(session.PlayerName, session.RoomCode, c)
+		log.Printf("AddPlayer returned playerID=%d for %s in room %s", playerID, session.PlayerName, session.RoomCode)
 		if playerID == 0 {
 			log.Printf("Failed to add player: %s in room %s (room may be full or validation error)", session.PlayerName, session.RoomCode)
 			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "Room full or invalid"))
