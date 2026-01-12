@@ -230,15 +230,19 @@ func HandleWebSocketWithAuth(mm *Matchmaking, sessionStore *SessionStore) http.H
 		// Get session from cookie
 		cookie, err := r.Cookie("session")
 		if err != nil {
+			log.Printf("WebSocket upgrade failed: no session cookie - %v", err)
 			http.Error(w, "Not authenticated", http.StatusUnauthorized)
 			return
 		}
 
 		session, ok := sessionStore.GetSession(cookie.Value)
 		if !ok {
+			log.Printf("WebSocket upgrade failed: invalid session cookie %s", cookie.Value)
 			http.Error(w, "Invalid session", http.StatusUnauthorized)
 			return
 		}
+		
+		log.Printf("WebSocket upgrade: session validated for %s (room: %s)", session.PlayerName, session.RoomCode)
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
