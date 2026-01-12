@@ -1331,6 +1331,56 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 	if existingConn, ok := m.connections[playerID]; ok && existingConn == conn {
 		delete(m.connections, playerID)
 		log.Printf("Removed connection for player %d", playerID)
+		
+		// Check if this player was in a game room, and mark room as ended if no active connections remain
+		if conn.speedTypeRoom != nil && !conn.speedTypeRoom.GameEnded {
+			room := conn.speedTypeRoom
+			hasActiveConnections := false
+			for _, p := range room.Players {
+				if p != nil {
+					if _, ok := m.connections[p.ID]; ok {
+						hasActiveConnections = true
+						break
+					}
+				}
+			}
+			if !hasActiveConnections {
+				room.GameEnded = true
+				log.Printf("Marked speed type room %s as ended - all players disconnected", room.ID)
+			}
+		}
+		if conn.mathSprintRoom != nil && !conn.mathSprintRoom.GameEnded {
+			room := conn.mathSprintRoom
+			hasActiveConnections := false
+			for _, p := range room.Players {
+				if p != nil {
+					if _, ok := m.connections[p.ID]; ok {
+						hasActiveConnections = true
+						break
+					}
+				}
+			}
+			if !hasActiveConnections {
+				room.GameEnded = true
+				log.Printf("Marked math sprint room %s as ended - all players disconnected", room.ID)
+			}
+		}
+		if conn.clickSpeedRoom != nil && !conn.clickSpeedRoom.GameEnded {
+			room := conn.clickSpeedRoom
+			hasActiveConnections := false
+			for _, p := range room.Players {
+				if p != nil {
+					if _, ok := m.connections[p.ID]; ok {
+						hasActiveConnections = true
+						break
+					}
+				}
+			}
+			if !hasActiveConnections {
+				room.GameEnded = true
+				log.Printf("Marked click speed room %s as ended - all players disconnected", room.ID)
+			}
+		}
 	} else {
 		log.Printf("Skipping connection removal for player %d - connection already replaced", playerID)
 	}
