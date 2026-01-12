@@ -144,40 +144,6 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 		}
 	}
 
-	// Check if there are active game rooms for this room code that might be starting
-	// Don't reject if player might be reconnecting to a game
-	hasActiveGame := false
-	for _, room := range m.speedTypeRooms {
-		if !room.CheckGameEnd() {
-			for _, player := range room.Players {
-				if player != nil && player.Name == name {
-					hasActiveGame = true
-					break
-				}
-			}
-		}
-	}
-	for _, room := range m.mathSprintRooms {
-		if !room.CheckGameEnd() {
-			for _, player := range room.Players {
-				if player != nil && player.Name == name {
-					hasActiveGame = true
-					break
-				}
-			}
-		}
-	}
-	for _, room := range m.clickSpeedRooms {
-		if !room.CheckGameEnd() {
-			for _, player := range room.Players {
-				if player != nil && player.Name == name {
-					hasActiveGame = true
-					break
-				}
-			}
-		}
-	}
-
 	// Count players in this room code's lobby (not in game)
 	playersInRoom := 0
 	for _, lp := range m.lobby {
@@ -186,8 +152,8 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 		}
 	}
 
-	// For lobby: Only allow 2 players max per room code (unless reconnecting to game)
-	if playersInRoom >= 2 && !hasActiveGame {
+	// For lobby: Only allow 2 players max per room code
+	if playersInRoom >= 2 {
 		log.Printf("Room '%s' lobby is full (2 players), rejecting new player: %s", roomCode, name)
 		return 0
 	}
