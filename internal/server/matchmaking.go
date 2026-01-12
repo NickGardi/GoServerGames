@@ -77,13 +77,18 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 	m.cleanupEmptyRoomsUnlocked()
 
 	// Check if player is in an active Speed Type game room (reconnection after redirect)
-	for _, room := range m.speedTypeRooms {
+	log.Printf("AddPlayer: Checking %d speed type rooms for player %s", len(m.speedTypeRooms), name)
+	for roomID, room := range m.speedTypeRooms {
+		log.Printf("AddPlayer: Checking speed type room %s: GameEnded=%v, Players=[%v, %v]", 
+			roomID, room.CheckGameEnd(),
+			func() string { if room.Players[0] != nil { return room.Players[0].Name } else { return "nil" } }(),
+			func() string { if room.Players[1] != nil { return room.Players[1].Name } else { return "nil" } }())
 		if room.CheckGameEnd() {
 			continue
 		}
 		for _, player := range room.Players {
 			if player != nil && player.Name == name {
-				log.Printf("Reconnecting player %s (ID %d) to speed type room %s", name, player.ID, room.ID)
+				log.Printf("AddPlayer: Found player %s (ID %d) in speed type room %s - reconnecting", name, player.ID, room.ID)
 				conn.playerID = player.ID
 				conn.speedTypeRoom = room
 				m.connections[player.ID] = conn
@@ -91,6 +96,7 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 				
 				conn.SendWelcome(player.ID, room.ID, nil)
 				conn.SendMessage(room.GetState())
+				log.Printf("AddPlayer: Successfully reconnected player %s (ID %d) to speed type room %s", name, player.ID, room.ID)
 				return player.ID
 			}
 		}
