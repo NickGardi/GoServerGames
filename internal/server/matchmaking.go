@@ -751,7 +751,34 @@ func (m *Matchmaking) sendGameSummary(room *game.SpeedTypeRoom) {
 // Math Sprint game functions
 
 func (m *Matchmaking) startMathSprintGame(room *game.MathSprintRoom, p1, p2 *LobbyPlayer) {
+	// Broadcast initial state periodically while waiting for players to reconnect
+	// This ensures reconnecting players get the correct state
+	broadcastTicker := time.NewTicker(200 * time.Millisecond)
+	stopBroadcasting := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-broadcastTicker.C:
+				m.mu.Lock()
+				if _, exists := m.mathSprintRooms[room.ID]; !exists || room.GameEnded {
+					m.mu.Unlock()
+					stopBroadcasting <- true
+					return
+				}
+				activeConns := m.getMathRoomConnectionsUnlocked(room)
+				if len(activeConns) > 0 {
+					m.broadcastMathSprintStateUnlocked(room)
+				}
+				m.mu.Unlock()
+			case <-stopBroadcasting:
+				return
+			}
+		}
+	}()
+	
 	time.Sleep(2 * time.Second)
+	broadcastTicker.Stop()
+	stopBroadcasting <- true
 	
 	log.Printf("Math sprint game loop starting for room %s", room.ID)
 
@@ -868,7 +895,10 @@ func (m *Matchmaking) sendMathGameSummary(room *game.MathSprintRoom) {
 func (m *Matchmaking) broadcastMathSprintState(room *game.MathSprintRoom) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.broadcastMathSprintStateUnlocked(room)
+}
 
+func (m *Matchmaking) broadcastMathSprintStateUnlocked(room *game.MathSprintRoom) {
 	state := room.GetState()
 	for _, player := range room.Players {
 		if player != nil {
