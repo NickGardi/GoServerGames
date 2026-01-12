@@ -565,6 +565,9 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string
 		conn2.SendMessage(gameStartMsg)
 		log.Printf("gameStart messages sent to both players")
 		
+		// Broadcast initial ready state so reconnecting players see it
+		m.broadcastMathSprintState(room)
+		
 		time.Sleep(200 * time.Millisecond)
 		m.selectedBy = nil
 		m.removePlayersFromLobby(roomCode)
