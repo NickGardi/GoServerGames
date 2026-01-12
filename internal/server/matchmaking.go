@@ -77,13 +77,19 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 	m.cleanupEmptyRoomsUnlocked()
 
 	// Check if player is in an active Speed Type game room (reconnection after redirect)
-	log.Printf("AddPlayer: Checking %d speed type rooms for player %s", len(m.speedTypeRooms), name)
+	// Only reconnect if the room code matches - prevents cross-room contamination
+	log.Printf("AddPlayer: Checking %d speed type rooms for player %s (room code: %s)", len(m.speedTypeRooms), name, roomCode)
 	for roomID, room := range m.speedTypeRooms {
-		log.Printf("AddPlayer: Checking speed type room %s: GameEnded=%v, Players=[%v, %v]", 
-			roomID, room.CheckGameEnd(),
+		log.Printf("AddPlayer: Checking speed type room %s: GameEnded=%v, RoomCode=%s, Players=[%v, %v]", 
+			roomID, room.CheckGameEnd(), room.RoomCode,
 			func() string { if room.Players[0] != nil { return room.Players[0].Name } else { return "nil" } }(),
 			func() string { if room.Players[1] != nil { return room.Players[1].Name } else { return "nil" } }())
 		if room.CheckGameEnd() {
+			continue
+		}
+		// Only reconnect if room code matches
+		if room.RoomCode != roomCode {
+			log.Printf("AddPlayer: Skipping room %s - room code mismatch (%s != %s)", roomID, room.RoomCode, roomCode)
 			continue
 		}
 		for _, player := range room.Players {
@@ -103,12 +109,18 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 	}
 
 	// Check if player is in an active Math Sprint game room (reconnection after redirect)
+	// Only reconnect if the room code matches - prevents cross-room contamination
 	for roomID, room := range m.mathSprintRooms {
-		log.Printf("  Checking math sprint room %s: GameEnded=%v, Players=[%v, %v]",
-			roomID, room.GameEnded,
+		log.Printf("  Checking math sprint room %s: GameEnded=%v, RoomCode=%s, Players=[%v, %v]",
+			roomID, room.GameEnded, room.RoomCode,
 			func() string { if room.Players[0] != nil { return room.Players[0].Name } else { return "nil" } }(),
 			func() string { if room.Players[1] != nil { return room.Players[1].Name } else { return "nil" } }())
 		if room.CheckGameEnd() {
+			continue
+		}
+		// Only reconnect if room code matches
+		if room.RoomCode != roomCode {
+			log.Printf("AddPlayer: Skipping math sprint room %s - room code mismatch (%s != %s)", roomID, room.RoomCode, roomCode)
 			continue
 		}
 		for _, player := range room.Players {
@@ -127,12 +139,18 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 	}
 
 	// Check if player is in an active Click Speed game room (reconnection after redirect)
+	// Only reconnect if the room code matches - prevents cross-room contamination
 	for roomID, room := range m.clickSpeedRooms {
-		log.Printf("  Checking click speed room %s: GameEnded=%v, Players=[%v, %v]",
-			roomID, room.GameEnded,
+		log.Printf("  Checking click speed room %s: GameEnded=%v, RoomCode=%s, Players=[%v, %v]",
+			roomID, room.GameEnded, room.RoomCode,
 			func() string { if room.Players[0] != nil { return room.Players[0].Name } else { return "nil" } }(),
 			func() string { if room.Players[1] != nil { return room.Players[1].Name } else { return "nil" } }())
 		if room.CheckGameEnd() {
+			continue
+		}
+		// Only reconnect if room code matches
+		if room.RoomCode != roomCode {
+			log.Printf("AddPlayer: Skipping click speed room %s - room code mismatch (%s != %s)", roomID, room.RoomCode, roomCode)
 			continue
 		}
 		for _, player := range room.Players {
@@ -489,7 +507,7 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string
 
 	switch gameType {
 	case "speedtype":
-		room := game.NewSpeedTypeRoom(roomID)
+		room := game.NewSpeedTypeRoom(roomID, roomCode)
 		room.AddPlayer(p1.PlayerID, p1.Name)
 		room.AddPlayer(p2.PlayerID, p2.Name)
 
@@ -522,7 +540,7 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string
 		go m.startSpeedTypeGame(room, p1, p2)
 
 	case "mathsprint":
-		room := game.NewMathSprintRoom(roomID)
+		room := game.NewMathSprintRoom(roomID, roomCode)
 		room.AddPlayer(p1.PlayerID, p1.Name)
 		room.AddPlayer(p2.PlayerID, p2.Name)
 
@@ -555,7 +573,7 @@ func (m *Matchmaking) startSelectedGameUnlocked(gameType string, roomCode string
 		go m.startMathSprintGame(room, p1, p2)
 
 	case "clickspeed":
-		room := game.NewClickSpeedRoom(roomID)
+		room := game.NewClickSpeedRoom(roomID, roomCode)
 		room.AddPlayer(p1.PlayerID, p1.Name)
 		room.AddPlayer(p2.PlayerID, p2.Name)
 
@@ -1340,8 +1358,8 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 				if p != nil {
 					if _, ok := m.connections[p.ID]; ok {
 						hasActiveConnections = true
-						break
-					}
+			break
+		}
 				}
 			}
 			if !hasActiveConnections {

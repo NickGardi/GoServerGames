@@ -27,11 +27,11 @@ type MathQuestion struct {
 func GenerateMathQuestion() MathQuestion {
 	// Randomly choose between add/subtract or multiply/divide
 	if rand.Intn(2) == 0 {
-		// Addition or Subtraction (1 to 9999)
+		// Addition or Subtraction (1 to 999)
 		if rand.Intn(2) == 0 {
 			// Addition
-			num1 := rand.Intn(9999) + 1
-			num2 := rand.Intn(9999) + 1
+			num1 := rand.Intn(999) + 1
+			num2 := rand.Intn(999) + 1
 			return MathQuestion{
 				Num1:      num1,
 				Num2:      num2,
@@ -41,7 +41,7 @@ func GenerateMathQuestion() MathQuestion {
 			}
 		} else {
 			// Subtraction - ensure positive result
-			num1 := rand.Intn(9999) + 1
+			num1 := rand.Intn(999) + 1
 			num2 := rand.Intn(num1) + 1 // num2 <= num1
 			return MathQuestion{
 				Num1:      num1,
@@ -101,6 +101,7 @@ type MathRoundHistory struct {
 
 type MathSprintRoom struct {
 	ID                string
+	RoomCode          string // Room code this game belongs to (for isolation)
 	Players           [2]*MathSprintPlayer
 	CurrentQuestion   MathQuestion
 	State             string // "waiting", "ready", "playing", "results", "finished"
@@ -113,9 +114,10 @@ type MathSprintRoom struct {
 	GameEnded         bool
 }
 
-func NewMathSprintRoom(id string) *MathSprintRoom {
+func NewMathSprintRoom(id string, roomCode string) *MathSprintRoom {
 	return &MathSprintRoom{
 		ID:           id,
+		RoomCode:     roomCode,
 		State:        "waiting",
 		RoundNumber:  0,
 		RoundHistory: make([]MathRoundHistory, 0),

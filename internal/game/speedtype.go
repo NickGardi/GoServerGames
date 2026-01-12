@@ -72,6 +72,7 @@ type RoundHistory struct {
 
 type SpeedTypeRoom struct {
 	ID          string
+	RoomCode    string // Room code this game belongs to (for isolation)
 	Players     [2]*SpeedTypePlayer
 	CurrentWord string
 	State       string // "waiting", "ready", "playing", "results", "finished"
@@ -84,9 +85,10 @@ type SpeedTypeRoom struct {
 	GameEnded   bool
 }
 
-func NewSpeedTypeRoom(id string) *SpeedTypeRoom {
+func NewSpeedTypeRoom(id string, roomCode string) *SpeedTypeRoom {
 	return &SpeedTypeRoom{
 		ID:          id,
+		RoomCode:    roomCode,
 		State:       "waiting",
 		RoundNumber: 0,
 		RoundHistory: make([]RoundHistory, 0),

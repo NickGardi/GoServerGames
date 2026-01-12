@@ -42,6 +42,7 @@ type ClickRoundHistory struct {
 
 type ClickSpeedRoom struct {
 	ID                string
+	RoomCode          string // Room code this game belongs to (for isolation)
 	Players           [2]*ClickSpeedPlayer
 	CurrentTarget     ClickTarget
 	State             string // "waiting", "ready", "playing", "results"
@@ -54,9 +55,10 @@ type ClickSpeedRoom struct {
 	GameEnded         bool
 }
 
-func NewClickSpeedRoom(id string) *ClickSpeedRoom {
+func NewClickSpeedRoom(id string, roomCode string) *ClickSpeedRoom {
 	return &ClickSpeedRoom{
 		ID:           id,
+		RoomCode:     roomCode,
 		State:        "waiting",
 		RoundNumber:  0,
 		RoundHistory: make([]ClickRoundHistory, 0),
