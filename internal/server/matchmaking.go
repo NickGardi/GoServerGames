@@ -1156,8 +1156,12 @@ func (m *Matchmaking) GetRoom(roomID string) *game.Room {
 // cleanupEmptyRoomsUnlocked removes game rooms that have no active connections
 // This function assumes the lock is already held
 func (m *Matchmaking) cleanupEmptyRoomsUnlocked() {
-	// Clean up speed type rooms with no active players (including ended games)
+	// Clean up speed type rooms that have ended AND have no active players
+	// Don't clean up active games even if connections temporarily drop (e.g., during redirect)
 	for roomID, room := range m.speedTypeRooms {
+		if !room.GameEnded {
+			continue // Don't clean up rooms that are still active
+		}
 		hasActivePlayer := false
 		for _, player := range room.Players {
 			if player != nil {
@@ -1169,16 +1173,16 @@ func (m *Matchmaking) cleanupEmptyRoomsUnlocked() {
 		}
 		if !hasActivePlayer {
 			delete(m.speedTypeRooms, roomID)
-			if room.GameEnded {
-				log.Printf("Cleaned up ended speed type room %s (no active players)", roomID)
-			} else {
-				log.Printf("Cleaned up empty speed type room %s (no active players)", roomID)
-			}
+			log.Printf("Cleaned up ended speed type room %s (no active players)", roomID)
 		}
 	}
 	
-	// Clean up math sprint rooms with no active players
+	// Clean up math sprint rooms that have ended AND have no active players
+	// Don't clean up active games even if connections temporarily drop (e.g., during redirect)
 	for roomID, room := range m.mathSprintRooms {
+		if !room.GameEnded {
+			continue // Don't clean up rooms that are still active
+		}
 		hasActivePlayer := false
 		for _, player := range room.Players {
 			if player != nil {
@@ -1190,16 +1194,16 @@ func (m *Matchmaking) cleanupEmptyRoomsUnlocked() {
 		}
 		if !hasActivePlayer {
 			delete(m.mathSprintRooms, roomID)
-			if room.GameEnded {
-				log.Printf("Cleaned up ended math sprint room %s (no active players)", roomID)
-			} else {
-				log.Printf("Cleaned up empty math sprint room %s (no active players)", roomID)
-			}
+			log.Printf("Cleaned up ended math sprint room %s (no active players)", roomID)
 		}
 	}
 	
-	// Clean up click speed rooms with no active players
+	// Clean up click speed rooms that have ended AND have no active players
+	// Don't clean up active games even if connections temporarily drop (e.g., during redirect)
 	for roomID, room := range m.clickSpeedRooms {
+		if !room.GameEnded {
+			continue // Don't clean up rooms that are still active
+		}
 		hasActivePlayer := false
 		for _, player := range room.Players {
 			if player != nil {
@@ -1211,11 +1215,7 @@ func (m *Matchmaking) cleanupEmptyRoomsUnlocked() {
 		}
 		if !hasActivePlayer {
 			delete(m.clickSpeedRooms, roomID)
-			if room.GameEnded {
-				log.Printf("Cleaned up ended click speed room %s (no active players)", roomID)
-			} else {
-				log.Printf("Cleaned up empty click speed room %s (no active players)", roomID)
-			}
+			log.Printf("Cleaned up ended click speed room %s (no active players)", roomID)
 		}
 	}
 }
