@@ -145,12 +145,16 @@ func (r *ClickSpeedRoom) SubmitClick(playerID int, timeMs float64) bool {
 	if r.Player1SubmitTime > 0 && r.Player2SubmitTime > 0 {
 		r.State = "results"
 		// Determine winner (faster time wins)
+		// RoundWinner = 0 means tie
 		if r.Player1SubmitTime < r.Player2SubmitTime {
 			r.RoundWinner = r.Players[0].ID
 			r.Players[0].Score++
 		} else if r.Player2SubmitTime < r.Player1SubmitTime {
 			r.RoundWinner = r.Players[1].ID
 			r.Players[1].Score++
+		} else {
+			// Tie - RoundWinner stays 0
+			r.RoundWinner = 0
 		}
 
 		// Store times for display

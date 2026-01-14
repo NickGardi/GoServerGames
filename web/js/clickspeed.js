@@ -55,8 +55,8 @@ class ClickSpeedClient {
     }
 
     handleGameState(msg) {
-        // Update scores and player names
-        if (msg.scores) {
+        // Update scores and player names FIRST, before processing state
+        if (msg.scores && msg.scores.length > 0) {
             msg.scores.forEach(score => {
                 if (score.playerId === this.playerID) {
                     this.scores.player1 = score.score;
@@ -241,15 +241,16 @@ class ClickSpeedClient {
         document.getElementById('opponentNameResult').textContent = `${this.playerNames.player2}:`;
         
         const resultTitle = document.getElementById('resultTitle');
-        if (result.winnerId === this.playerID) {
-            resultTitle.textContent = '🎯 You won this round!';
-            resultTitle.style.color = '#10b981';
-        } else if (result.winnerId > 0) {
-            resultTitle.textContent = `${this.playerNames.player2} won this round`;
-            resultTitle.style.color = '#ef4444';
-        } else {
+        // Check for tie first (winnerId === 0 or undefined)
+        if (!result.winnerId || result.winnerId === 0) {
             resultTitle.textContent = "It's a tie!";
             resultTitle.style.color = '#f59e0b';
+        } else if (result.winnerId === this.playerID) {
+            resultTitle.textContent = '🎯 You won this round!';
+            resultTitle.style.color = '#10b981';
+        } else {
+            resultTitle.textContent = `${this.playerNames.player2} won this round`;
+            resultTitle.style.color = '#ef4444';
         }
     }
 
