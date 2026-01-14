@@ -137,6 +137,29 @@ body.dark-mode {
     font-weight: 700;
 }
 
+.room-code-display {
+    background: rgba(99, 102, 241, 0.2);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.1em;
+}
+
+.room-code-label {
+    color: var(--text-secondary);
+    margin-right: 10px;
+}
+
+.room-code-value {
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 1.2em;
+    letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
+}
+
 .players-list {
     display: flex;
     flex-direction: column;
