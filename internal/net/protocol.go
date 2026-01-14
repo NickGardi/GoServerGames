@@ -70,6 +70,7 @@ type WelcomeMessage struct {
 	Type      string     `json:"type"`
 	PlayerID  int        `json:"playerId"`
 	RoomID    string     `json:"roomId"`
+	RoomCode  string     `json:"roomCode,omitempty"`
 	Lobby     *LobbyState `json:"lobby,omitempty"`
 }
 

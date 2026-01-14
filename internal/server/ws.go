@@ -47,6 +47,7 @@ func (c *Connection) SendWelcome(playerID int, roomID string, lobby *net.LobbySt
 		Type:     "welcome",
 		PlayerID: playerID,
 		RoomID:   roomID,
+		RoomCode: c.session.RoomCode,
 		Lobby:    lobby,
 	}
 	log.Printf("Sending welcome to player %d with lobby: %v", playerID, lobby != nil)

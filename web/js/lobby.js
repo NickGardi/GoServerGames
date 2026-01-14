@@ -8,6 +8,7 @@ class LobbyClient {
         this.selectedBy = null; // { playerId, name }
         this.isReady = false;
         this.reconnecting = false;
+        this.roomCode = null;
         this.initWebSocket();
         this.setupGameSelection();
         this.setupReadyButton();
@@ -88,7 +89,11 @@ class LobbyClient {
         switch (msg.type) {
             case 'welcome':
                 this.playerID = msg.playerId;
-                console.log('Welcome received, playerID:', this.playerID, 'lobby:', msg.lobby);
+                if (msg.roomCode) {
+                    this.roomCode = msg.roomCode;
+                    this.displayRoomCode(msg.roomCode);
+                }
+                console.log('Welcome received, playerID:', this.playerID, 'roomCode:', msg.roomCode, 'lobby:', msg.lobby);
                 if (msg.lobby) {
                     console.log('Updating lobby from welcome message with', msg.lobby.players?.length || 0, 'players');
                     this.updateLobby(msg.lobby);
@@ -363,6 +368,15 @@ class LobbyClient {
         if (readyBtn) {
             readyBtn.textContent = 'Ready';
             readyBtn.classList.remove('ready-active');
+        }
+    }
+
+    displayRoomCode(roomCode) {
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const roomCodeValue = document.getElementById('roomCodeValue');
+        if (roomCodeDisplay && roomCodeValue && roomCode) {
+            roomCodeValue.textContent = roomCode;
+            roomCodeDisplay.style.display = 'block';
         }
     }
 }
