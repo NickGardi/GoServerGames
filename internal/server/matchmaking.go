@@ -172,19 +172,69 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 		}
 	}
 
-	// Count players in this room code's lobby (not in game)
+	// Check if player already exists in lobby with same name and room code (reconnection case)
+	// If so, replace their connection and return their existing ID
+	for _, lp := range m.lobby {
+		if lp.RoomCode == roomCode && lp.Name == name {
+			log.Printf("Player %s reconnecting to lobby in room '%s' - replacing connection (old ID: %d)", name, roomCode, lp.PlayerID)
+			// Replace connection
+			oldConn := lp.Conn
+			lp.Conn = conn
+			conn.lobbyPlayer = lp
+			conn.playerID = lp.PlayerID
+			// Clear any game room references
+			conn.speedTypeRoom = nil
+			conn.mathSprintRoom = nil
+			conn.clickSpeedRoom = nil
+			// Update connection map
+			m.connections[lp.PlayerID] = conn
+			// Reset ready status on reconnection
+			lp.Ready = false
+			// Close old connection if it exists and is different
+			if oldConn != nil && oldConn != conn {
+				oldConn.conn.Close()
+			}
+			// Send welcome and lobby state
+			lobbyState := m.GetLobbyStateUnlocked(roomCode)
+			conn.SendWelcome(lp.PlayerID, "", lobbyState)
+			m.broadcastLobbyUpdateUnlocked(roomCode)
+			log.Printf("Reconnected player %d (%s) to room '%s' lobby", lp.PlayerID, name, roomCode)
+			return lp.PlayerID
+		}
+	}
+
+	// Count ACTIVE players in this room code's lobby (only those with valid connections)
 	playersInRoom := 0
 	for _, lp := range m.lobby {
 		if lp.RoomCode == roomCode {
-			playersInRoom++
+			// Check if connection is still valid
+			if _, ok := m.connections[lp.PlayerID]; ok && lp.Conn != nil {
+				playersInRoom++
+			}
 		}
 	}
 
 	// For lobby: Only allow 2 players max per room code
 	if playersInRoom >= 2 {
-		log.Printf("Room '%s' lobby is full (2 players), rejecting new player: %s", roomCode, name)
+		log.Printf("Room '%s' lobby is full (2 active players), rejecting new player: %s", roomCode, name)
 		return 0
 	}
+
+	// Clean up any stale lobby entries for this room code (players with invalid connections)
+	var cleanedLobby []*LobbyPlayer
+	for _, lp := range m.lobby {
+		if lp.RoomCode == roomCode {
+			// Keep only entries with valid connections
+			if _, ok := m.connections[lp.PlayerID]; ok && lp.Conn != nil {
+				cleanedLobby = append(cleanedLobby, lp)
+			} else {
+				log.Printf("Cleaning up stale lobby entry for player %d (%s) in room '%s'", lp.PlayerID, lp.Name, roomCode)
+			}
+		} else {
+			cleanedLobby = append(cleanedLobby, lp)
+		}
+	}
+	m.lobby = cleanedLobby
 
 	// Create new player
 	playerID := m.nextPlayerID
@@ -201,7 +251,10 @@ func (m *Matchmaking) AddPlayer(name string, roomCode string, conn *Connection) 
 	m.lobby = append(m.lobby, lp)
 	conn.lobbyPlayer = lp
 	conn.playerID = playerID
+	// Clear any game room references
 	conn.speedTypeRoom = nil
+	conn.mathSprintRoom = nil
+	conn.clickSpeedRoom = nil
 	m.connections[playerID] = conn
 
 	log.Printf("Added new player %d (%s) to room '%s' lobby (total: %d)", playerID, name, roomCode, len(m.lobby))
@@ -1154,11 +1207,14 @@ func (m *Matchmaking) GetLobbyState(roomCode string) *net.LobbyState {
 }
 
 func (m *Matchmaking) GetLobbyStateUnlocked(roomCode string) *net.LobbyState {
-	// Filter players by room code
+	// Filter players by room code and ensure they have valid connections
 	var filteredPlayers []*LobbyPlayer
 	for _, lp := range m.lobby {
 		if lp.RoomCode == roomCode {
-			filteredPlayers = append(filteredPlayers, lp)
+			// Only include players with valid connections
+			if _, ok := m.connections[lp.PlayerID]; ok && lp.Conn != nil {
+				filteredPlayers = append(filteredPlayers, lp)
+			}
 		}
 	}
 	
@@ -1455,11 +1511,15 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 	}
 	
 	// Find and remove player from lobby
+	// Also remove by playerID even if connection doesn't match (handles connection replacement)
+	removedFromLobby := false
+	var roomCode string
 	for i, lp := range m.lobby {
-		if lp.PlayerID == playerID && lp.Conn == conn {
-			roomCode := lp.RoomCode
+		if lp.PlayerID == playerID {
+			roomCode = lp.RoomCode
 			m.lobby = append(m.lobby[:i], m.lobby[i+1:]...)
 			log.Printf("Player %d removed from lobby (room '%s'), %d players remaining", playerID, roomCode, len(m.lobby))
+			removedFromLobby = true
 			
 			// Clear selected game if the player who selected it left
 			if m.selectedBy != nil && m.selectedBy.PlayerID == playerID {
@@ -1470,12 +1530,21 @@ func (m *Matchmaking) RemovePlayer(playerID int, conn *Connection) {
 						remaining.Ready = false
 					}
 				}
-			}
-			
-			m.broadcastLobbyUpdateUnlocked(roomCode)
+				}
 				break
 			}
 		}
+
+	// Broadcast lobby update if player was removed
+	if removedFromLobby && roomCode != "" {
+		m.broadcastLobbyUpdateUnlocked(roomCode)
+		
+		// Reset player ID counter if lobby is empty
+		if len(m.lobby) == 0 {
+			m.nextPlayerID = 1
+			log.Printf("Reset player ID counter to 1 (lobby empty)")
+		}
+	}
 
 	// Cleanup is now handled by cleanupEmptyRoomsUnlocked() which is deferred
 	
