@@ -65,7 +65,8 @@ class ClickSpeedClient {
                 document.getElementById('player1Score').textContent = msg.scores[0].score;
                 document.getElementById('player1Name').textContent = isMe ? 'You' : msg.scores[0].name;
                 this.playerIDs.player1 = msg.scores[0].playerId;
-                this.playerNames.player1 = isMe ? 'You' : msg.scores[0].name;
+                // Store actual name (not "You") for use in results
+                this.playerNames.player1 = msg.scores[0].name;
             }
             
             if (msg.scores[1]) {
@@ -74,7 +75,8 @@ class ClickSpeedClient {
                 document.getElementById('player2Score').textContent = msg.scores[1].score;
                 document.getElementById('player2Name').textContent = isMe ? 'You' : msg.scores[1].name;
                 this.playerIDs.player2 = msg.scores[1].playerId;
-                this.playerNames.player2 = isMe ? 'You' : msg.scores[1].name;
+                // Store actual name (not "You") for use in results
+                this.playerNames.player2 = msg.scores[1].name;
             }
         }
 
@@ -100,7 +102,7 @@ class ClickSpeedClient {
                 // Only start if this is a NEW target and we haven't clicked yet
                 if (targetKey !== this.currentTargetKey && !this.hasClicked && !this.waitingForTarget) {
                     this.currentTargetKey = targetKey;
-                    this.startWaitingForTarget(msg.targetX, msg.targetY, msg.radius);
+                    this.startWaitingForTarget(msg.targetX, msg.targetY, msg.radius, msg.targetAppearDelayMs);
                 }
                 break;
                 
@@ -118,7 +120,7 @@ class ClickSpeedClient {
         this.currentState = msg.state;
     }
 
-    startWaitingForTarget(targetX, targetY, radius) {
+    startWaitingForTarget(targetX, targetY, radius, targetAppearDelayMs) {
         if (this.waitingForTarget) return;
         
         this.waitingForTarget = true;
@@ -137,8 +139,8 @@ class ClickSpeedClient {
                 clearInterval(countdownInterval);
                 this.showArenaOverlay('Click the target!');
                 
-                // Random delay between 1-3 seconds before target appears
-                const delay = 1000 + Math.random() * 2000;
+                // Use server-controlled delay (default to 2000ms if not provided)
+                const delay = targetAppearDelayMs || 2000;
                 
                 setTimeout(() => {
                     if (this.currentState === 'playing' && !this.roundActive && !this.hasClicked) {
@@ -237,23 +239,37 @@ class ClickSpeedClient {
         document.getElementById('resultsArea').style.display = 'block';
         
         // Determine which player we are based on player IDs
-        // Check which player slot we occupy based on the stored player IDs
         const isPlayer1Slot = this.playerID === this.playerIDs.player1;
         
         // The server sends Player1TimeMs and Player2TimeMs based on room slots (Players[0] and Players[1])
-        // We need to map these to our local "player1" and "player2" display slots
         let myTime, oppTime, opponentName;
         
         if (isPlayer1Slot) {
-            // We are in the player1 slot (left side), so Player1TimeMs is ours
+            // We are player1 (left side)
             myTime = result.player1TimeMs;
             oppTime = result.player2TimeMs;
+            // Get opponent name from stored playerNames (which has actual username)
             opponentName = this.playerNames.player2;
         } else {
-            // We are in the player2 slot (right side), so Player2TimeMs is ours
+            // We are player2 (right side)
             myTime = result.player2TimeMs;
             oppTime = result.player1TimeMs;
+            // Get opponent name from stored playerNames (which has actual username)
             opponentName = this.playerNames.player1;
+        }
+        
+        // If opponent name is "You", we need to get the actual name
+        // The header should have been updated with actual names in handleGameState
+        if (opponentName === 'You') {
+            // Get from the DOM element which should have the actual name
+            const oppNameElement = isPlayer1Slot ? document.getElementById('player2Name') : document.getElementById('player1Name');
+            if (oppNameElement && oppNameElement.textContent !== 'You') {
+                opponentName = oppNameElement.textContent;
+            } else {
+                // Fallback: use stored name, but it might be wrong, try to get from scores
+                // This shouldn't happen if handleGameState worked correctly
+                opponentName = 'Opponent';
+            }
         }
         
         document.getElementById('yourTime').textContent = `${(myTime / 1000).toFixed(3)}s`;
@@ -269,7 +285,7 @@ class ClickSpeedClient {
             resultTitle.textContent = '🎯 You won this round!';
             resultTitle.style.color = '#10b981';
         } else {
-            // Opponent won - use the correct opponent name
+            // Opponent won - use actual username
             resultTitle.textContent = `${opponentName} won this round`;
             resultTitle.style.color = '#ef4444';
         }

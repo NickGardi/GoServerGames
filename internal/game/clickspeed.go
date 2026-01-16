@@ -47,6 +47,7 @@ type ClickSpeedRoom struct {
 	CurrentTarget     ClickTarget
 	State             string // "waiting", "ready", "playing", "results"
 	RoundStartTime    time.Time
+	TargetAppearDelayMs int64 // Delay in milliseconds before target appears (server-controlled)
 	Player1SubmitTime float64
 	Player2SubmitTime float64
 	RoundWinner       int
@@ -101,6 +102,8 @@ func (r *ClickSpeedRoom) StartRound() {
 	r.CurrentTarget = GenerateClickTarget()
 	r.State = "playing"
 	r.RoundStartTime = time.Now()
+	// Random delay between 2000-4000ms (2-4 seconds) for target to appear
+	r.TargetAppearDelayMs = int64(2000 + rand.Intn(2000))
 	r.Player1SubmitTime = 0
 	r.Player2SubmitTime = 0
 	r.RoundWinner = 0
@@ -122,23 +125,28 @@ func (r *ClickSpeedRoom) SubmitClick(playerID int, timeMs float64) bool {
 		return false
 	}
 
-	// Validate client time
+	// Client sends time from when target appeared, we need to add the delay
+	// actualTimeMs = targetAppearDelayMs + clientTimeMs
+	actualTimeMs := float64(r.TargetAppearDelayMs) + timeMs
+	
+	// Validate: actual time shouldn't exceed server elapsed time by more than 500ms
 	elapsedMs := float64(time.Since(r.RoundStartTime).Milliseconds())
-	if timeMs > elapsedMs+1000 {
-		timeMs = elapsedMs
+	if actualTimeMs > elapsedMs+500 {
+		// Use server time as fallback
+		actualTimeMs = elapsedMs
 	}
 
-	// Store submission time
+	// Store submission time (actual time from round start)
 	if playerIdx == 0 {
 		if r.Player1SubmitTime > 0 {
 			return false // Already submitted
 		}
-		r.Player1SubmitTime = timeMs
+		r.Player1SubmitTime = actualTimeMs
 	} else {
 		if r.Player2SubmitTime > 0 {
 			return false // Already submitted
 		}
-		r.Player2SubmitTime = timeMs
+		r.Player2SubmitTime = actualTimeMs
 	}
 
 	// Check if both players clicked
@@ -196,12 +204,13 @@ func (r *ClickSpeedRoom) GetState() *net.ClickSpeedStateMessage {
 	}
 
 	msg := &net.ClickSpeedStateMessage{
-		Type:    "clickSpeedState",
-		TargetX: r.CurrentTarget.X,
-		TargetY: r.CurrentTarget.Y,
-		Radius:  r.CurrentTarget.Radius,
-		State:   r.State,
-		Scores:  scores,
+		Type:              "clickSpeedState",
+		TargetX:           r.CurrentTarget.X,
+		TargetY:           r.CurrentTarget.Y,
+		Radius:            r.CurrentTarget.Radius,
+		State:             r.State,
+		Scores:            scores,
+		TargetAppearDelayMs: int(r.TargetAppearDelayMs),
 	}
 
 	if r.State == "results" {

@@ -228,13 +228,14 @@ type ClickSpeedSubmitMessage struct {
 }
 
 type ClickSpeedStateMessage struct {
-	Type        string             `json:"type"`
-	TargetX     float64            `json:"targetX"`
-	TargetY     float64            `json:"targetY"`
-	Radius      float64            `json:"radius"`
-	State       string             `json:"state"`
-	Scores      []ClickSpeedScore  `json:"scores"`
-	RoundResult *ClickSpeedResult  `json:"roundResult,omitempty"`
+	Type                string             `json:"type"`
+	TargetX             float64            `json:"targetX"`
+	TargetY             float64            `json:"targetY"`
+	Radius              float64            `json:"radius"`
+	State               string             `json:"state"`
+	Scores              []ClickSpeedScore  `json:"scores"`
+	RoundResult         *ClickSpeedResult  `json:"roundResult,omitempty"`
+	TargetAppearDelayMs int                `json:"targetAppearDelayMs,omitempty"` // Server-controlled delay in ms
 }
 
 type ClickSpeedScore struct {
