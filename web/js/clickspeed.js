@@ -68,35 +68,40 @@ class ClickSpeedClient {
                 const myIndex = msg.scores.findIndex(score => score.playerId === this.playerID);
                 const isPlayer1 = myIndex === 0;
                 
+                // Store actual player IDs and names from server (preserve real names)
+                // Server sends: [Players[0], Players[1]] in that order
+                const serverPlayer1 = msg.scores[0];
+                const serverPlayer2 = msg.scores[1];
+                
                 if (isPlayer1) {
-                    // We are player 1 (left side)
+                    // We are player 1 (left side) - server slot 0
                     this.scores.player1 = myScore.score;
                     document.getElementById('player1Score').textContent = myScore.score;
                     document.getElementById('player1Name').textContent = 'You';
                     this.playerIDs.player1 = myScore.playerId;
-                    this.playerNames.player1 = 'You';
+                    this.playerNames.player1 = 'You'; // Display "You" but we know the real name
                     
-                    if (oppScore) {
-                        this.scores.player2 = oppScore.score;
-                        document.getElementById('player2Score').textContent = oppScore.score;
-                        document.getElementById('player2Name').textContent = oppScore.name || 'Opponent';
-                        this.playerIDs.player2 = oppScore.playerId;
-                        this.playerNames.player2 = oppScore.name || 'Opponent';
+                    if (serverPlayer2) {
+                        this.scores.player2 = serverPlayer2.score;
+                        document.getElementById('player2Score').textContent = serverPlayer2.score;
+                        document.getElementById('player2Name').textContent = serverPlayer2.name || 'Opponent';
+                        this.playerIDs.player2 = serverPlayer2.playerId;
+                        this.playerNames.player2 = serverPlayer2.name || 'Opponent';
                     }
                 } else {
-                    // We are player 2 (right side)
+                    // We are player 2 (right side) - server slot 1
                     this.scores.player2 = myScore.score;
                     document.getElementById('player2Score').textContent = myScore.score;
                     document.getElementById('player2Name').textContent = 'You';
                     this.playerIDs.player2 = myScore.playerId;
-                    this.playerNames.player2 = 'You';
+                    this.playerNames.player2 = 'You'; // Display "You" but we know the real name
                     
-                    if (oppScore) {
-                        this.scores.player1 = oppScore.score;
-                        document.getElementById('player1Score').textContent = oppScore.score;
-                        document.getElementById('player1Name').textContent = oppScore.name || 'Opponent';
-                        this.playerIDs.player1 = oppScore.playerId;
-                        this.playerNames.player1 = oppScore.name || 'Opponent';
+                    if (serverPlayer1) {
+                        this.scores.player1 = serverPlayer1.score;
+                        document.getElementById('player1Score').textContent = serverPlayer1.score;
+                        document.getElementById('player1Name').textContent = serverPlayer1.name || 'Opponent';
+                        this.playerIDs.player1 = serverPlayer1.playerId;
+                        this.playerNames.player1 = serverPlayer1.name || 'Opponent';
                     }
                 }
             }
