@@ -125,15 +125,14 @@ func (r *ClickSpeedRoom) SubmitClick(playerID int, timeMs float64) bool {
 		return false
 	}
 
-	// Client sends time from when target appeared, we need to add the delay
-	// actualTimeMs = targetAppearDelayMs + clientTimeMs
-	actualTimeMs := float64(r.TargetAppearDelayMs) + timeMs
+	// Client sends time from when target appeared - use it directly
+	// The delay is only for synchronization, NOT part of reaction time
+	actualTimeMs := timeMs
 	
-	// Validate: actual time shouldn't exceed server elapsed time by more than 500ms
-	elapsedMs := float64(time.Since(r.RoundStartTime).Milliseconds())
-	if actualTimeMs > elapsedMs+500 {
-		// Use server time as fallback
-		actualTimeMs = elapsedMs
+	// Validate: reasonable reaction time (1-10 seconds)
+	if actualTimeMs < 0 || actualTimeMs > 10000 {
+		// Invalid time, use a default
+		actualTimeMs = 10000
 	}
 
 	// Store submission time (actual time from round start)

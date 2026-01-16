@@ -248,27 +248,23 @@ class ClickSpeedClient {
             // We are player1 (left side)
             myTime = result.player1TimeMs;
             oppTime = result.player2TimeMs;
-            // Get opponent name from stored playerNames (which has actual username)
-            opponentName = this.playerNames.player2;
+            // Get opponent name directly from the header (which has the actual username)
+            const oppNameElement = document.getElementById('player2Name');
+            opponentName = oppNameElement ? oppNameElement.textContent : 'Opponent';
+            // If it says "You", that means we're incorrectly mapped - get from stored names
+            if (opponentName === 'You') {
+                opponentName = this.playerNames.player2 || 'Opponent';
+            }
         } else {
             // We are player2 (right side)
             myTime = result.player2TimeMs;
             oppTime = result.player1TimeMs;
-            // Get opponent name from stored playerNames (which has actual username)
-            opponentName = this.playerNames.player1;
-        }
-        
-        // If opponent name is "You", we need to get the actual name
-        // The header should have been updated with actual names in handleGameState
-        if (opponentName === 'You') {
-            // Get from the DOM element which should have the actual name
-            const oppNameElement = isPlayer1Slot ? document.getElementById('player2Name') : document.getElementById('player1Name');
-            if (oppNameElement && oppNameElement.textContent !== 'You') {
-                opponentName = oppNameElement.textContent;
-            } else {
-                // Fallback: use stored name, but it might be wrong, try to get from scores
-                // This shouldn't happen if handleGameState worked correctly
-                opponentName = 'Opponent';
+            // Get opponent name directly from the header (which has the actual username)
+            const oppNameElement = document.getElementById('player1Name');
+            opponentName = oppNameElement ? oppNameElement.textContent : 'Opponent';
+            // If it says "You", that means we're incorrectly mapped - get from stored names
+            if (opponentName === 'You') {
+                opponentName = this.playerNames.player1 || 'Opponent';
             }
         }
         
