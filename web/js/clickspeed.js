@@ -290,12 +290,25 @@ class ClickSpeedClient {
         document.getElementById('opponentNameResult').textContent = `${opponentName}:`;
         
         const resultTitle = document.getElementById('resultTitle');
-        // The winnerId from server is the player ID who won
-        // Check for tie first (winnerId === 0 or undefined)
-        if (!result.winnerId || result.winnerId === 0) {
+        // The winnerId from server is the player ID who won (lowest time wins)
+        // Verify winner based on times as well as winnerId
+        let actualWinner;
+        if (result.player1TimeMs < result.player2TimeMs) {
+            // Player 1 (slot 0) has faster time
+            actualWinner = this.playerIDs.player1;
+        } else if (result.player2TimeMs < result.player1TimeMs) {
+            // Player 2 (slot 1) has faster time
+            actualWinner = this.playerIDs.player2;
+        } else {
+            // Tie
+            actualWinner = 0;
+        }
+        
+        // Use actual winner based on times (more reliable than just trusting winnerId)
+        if (actualWinner === 0 || !actualWinner) {
             resultTitle.textContent = "It's a tie!";
             resultTitle.style.color = '#f59e0b';
-        } else if (result.winnerId === this.playerID) {
+        } else if (actualWinner === this.playerID) {
             resultTitle.textContent = '🎯 You won this round!';
             resultTitle.style.color = '#10b981';
         } else {
@@ -355,10 +368,18 @@ class ClickSpeedClient {
             const myTime = isPlayer1 ? round.player1TimeMs : round.player2TimeMs;
             const oppTime = isPlayer1 ? round.player2TimeMs : round.player1TimeMs;
             
-            // winnerId from server is the actual player ID who won, not the slot index
-            const iWon = round.winnerId === this.playerID;
-            const theyWon = round.winnerId > 0 && round.winnerId !== this.playerID && round.winnerId !== 0;
-            const isTie = !round.winnerId || round.winnerId === 0;
+            // Determine winner based on actual times (more reliable)
+            let roundWinner;
+            if (round.player1TimeMs < round.player2TimeMs) {
+                roundWinner = this.playerIDs.player1;
+            } else if (round.player2TimeMs < round.player1TimeMs) {
+                roundWinner = this.playerIDs.player2;
+            } else {
+                roundWinner = 0; // Tie
+            }
+            
+            const iWon = roundWinner === this.playerID;
+            const theyWon = roundWinner > 0 && roundWinner !== this.playerID;
             const winnerText = iWon ? 'You' : (theyWon ? opponentName : 'Tie');
             
             roundDiv.innerHTML = `
