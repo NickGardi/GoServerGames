@@ -363,50 +363,29 @@ class ClickSpeedClient {
             roundsList.appendChild(roundDiv);
         });
         
-        // CRITICAL: Setup back to lobby button - MUST be visible and working
-        setTimeout(() => {
-            const backBtn = document.getElementById('backToLobbyBtn');
-            if (backBtn) {
-                console.log('Setting up Back to Lobby button');
-                
-                // Remove any existing listeners by cloning
-                const newBackBtn = backBtn.cloneNode(true);
-                backBtn.parentNode.replaceChild(newBackBtn, backBtn);
-                
-                // Add click handler
-                newBackBtn.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Back to Lobby button clicked - redirecting...');
-                    if (this.ws) {
-                        this.ws.close();
-                    }
-                    window.location.href = '/lobby.html';
-                };
-                
-                // Force visibility with multiple methods
-                newBackBtn.style.display = 'block';
-                newBackBtn.style.visibility = 'visible';
-                newBackBtn.style.opacity = '1';
-                newBackBtn.disabled = false;
-                newBackBtn.hidden = false;
-                
-                // Ensure parent section is visible
-                const parentSection = newBackBtn.closest('.play-again-section');
-                if (parentSection) {
-                    parentSection.style.display = 'block';
-                    parentSection.style.visibility = 'visible';
-                    parentSection.style.opacity = '1';
+        // CRITICAL: Setup back to lobby button - SIMPLE and DIRECT
+        const backBtn = document.getElementById('backToLobbyBtn');
+        if (backBtn) {
+            // Clear any existing onclick
+            backBtn.onclick = null;
+            
+            // Add click handler directly
+            backBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.ws) {
+                    this.ws.close();
                 }
-                
-                // Log for debugging
-                console.log('Back to Lobby button setup complete');
-                console.log('Button visible:', newBackBtn.offsetParent !== null);
-                console.log('Button display:', window.getComputedStyle(newBackBtn).display);
-            } else {
-                console.error('Back to Lobby button element not found in DOM!');
-            }
-        }, 100); // Small delay to ensure DOM is ready
+                window.location.href = '/lobby.html';
+            });
+            
+            // Make absolutely sure it's visible
+            backBtn.style.display = 'block';
+            backBtn.style.visibility = 'visible';
+            backBtn.style.opacity = '1';
+            backBtn.hidden = false;
+            backBtn.disabled = false;
+        }
     }
 }
 
