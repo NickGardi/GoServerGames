@@ -261,16 +261,31 @@ class ClickSpeedClient {
         document.getElementById('resultsArea').style.display = 'block';
         
         // Determine which player we are based on player IDs
-        const isPlayer1 = this.playerID === this.playerIDs.player1;
-        const myTime = isPlayer1 ? result.player1TimeMs : result.player2TimeMs;
-        const oppTime = isPlayer1 ? result.player2TimeMs : result.player1TimeMs;
-        const opponentName = isPlayer1 ? this.playerNames.player2 : this.playerNames.player1;
+        // Check which player slot we occupy based on the stored player IDs
+        const isPlayer1Slot = this.playerID === this.playerIDs.player1;
+        
+        // The server sends Player1TimeMs and Player2TimeMs based on room slots (Players[0] and Players[1])
+        // We need to map these to our local "player1" and "player2" display slots
+        let myTime, oppTime, opponentName;
+        
+        if (isPlayer1Slot) {
+            // We are in the player1 slot (left side), so Player1TimeMs is ours
+            myTime = result.player1TimeMs;
+            oppTime = result.player2TimeMs;
+            opponentName = this.playerNames.player2;
+        } else {
+            // We are in the player2 slot (right side), so Player2TimeMs is ours
+            myTime = result.player2TimeMs;
+            oppTime = result.player1TimeMs;
+            opponentName = this.playerNames.player1;
+        }
         
         document.getElementById('yourTime').textContent = `${(myTime / 1000).toFixed(3)}s`;
         document.getElementById('opponentTime').textContent = `${(oppTime / 1000).toFixed(3)}s`;
         document.getElementById('opponentNameResult').textContent = `${opponentName}:`;
         
         const resultTitle = document.getElementById('resultTitle');
+        // The winnerId from server is the player ID who won
         // Check for tie first (winnerId === 0 or undefined)
         if (!result.winnerId || result.winnerId === 0) {
             resultTitle.textContent = "It's a tie!";
@@ -279,6 +294,7 @@ class ClickSpeedClient {
             resultTitle.textContent = '🎯 You won this round!';
             resultTitle.style.color = '#10b981';
         } else {
+            // Opponent won - use the correct opponent name
             resultTitle.textContent = `${opponentName} won this round`;
             resultTitle.style.color = '#ef4444';
         }
@@ -328,10 +344,16 @@ class ClickSpeedClient {
             const roundDiv = document.createElement('div');
             roundDiv.className = 'round-item';
             
+            // Server sends player1TimeMs and player2TimeMs based on room slots (Players[0] and Players[1])
+            // We need to map these correctly based on which player we are
+            // If we're player1 (summary.player1Id === this.playerID), then player1TimeMs is ours
             const myTime = isPlayer1 ? round.player1TimeMs : round.player2TimeMs;
             const oppTime = isPlayer1 ? round.player2TimeMs : round.player1TimeMs;
+            
+            // winnerId from server is the actual player ID who won, not the slot index
             const iWon = round.winnerId === this.playerID;
-            const theyWon = round.winnerId > 0 && round.winnerId !== this.playerID;
+            const theyWon = round.winnerId > 0 && round.winnerId !== this.playerID && round.winnerId !== 0;
+            const isTie = !round.winnerId || round.winnerId === 0;
             const winnerText = iWon ? 'You' : (theyWon ? opponentName : 'Tie');
             
             roundDiv.innerHTML = `
