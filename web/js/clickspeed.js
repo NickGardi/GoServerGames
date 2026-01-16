@@ -13,6 +13,17 @@ class ClickSpeedClient {
         this.playerIDs = { player1: null, player2: null };
         this.playerNames = { player1: 'You', player2: 'Opponent' };
         
+        // Setup back to lobby button that's always visible
+        const backBtnHeader = document.getElementById('backToLobbyBtnHeader');
+        if (backBtnHeader) {
+            backBtnHeader.addEventListener('click', () => {
+                if (this.ws) {
+                    this.ws.close();
+                }
+                window.location.href = '/lobby.html';
+            });
+        }
+        
         this.connect();
     }
 
@@ -113,8 +124,9 @@ class ClickSpeedClient {
                 this.waitingForTarget = false;
                 this.hasClicked = false;
                 this.currentTargetKey = null;
-                if (msg.roundResult) {
-                    this.showResults(msg.roundResult);
+                if (msg.roundResult && msg.scores) {
+                    // Pass scores array so showResults can get fresh names
+                    this.showResults(msg.roundResult, msg.scores);
                 }
                 break;
         }
@@ -233,31 +245,40 @@ class ClickSpeedClient {
         document.getElementById('arenaOverlay').style.display = 'none';
     }
 
-    showResults(result) {
+    showResults(result, scoresArray) {
         this.roundActive = false;
         this.hideArenaOverlay();
         this.hideTarget();
         
         document.getElementById('resultsArea').style.display = 'block';
         
-        // Determine which player we are based on player IDs
-        const isPlayer1Slot = this.playerID === this.playerIDs.player1;
+        // Use fresh scores array to determine opponent name
+        if (!scoresArray || scoresArray.length < 2) {
+            console.error('No scores array provided to showResults');
+            return;
+        }
         
-        // The server sends Player1TimeMs and Player2TimeMs based on room slots (Players[0] and Players[1])
+        const player1Id = scoresArray[0].playerId;
+        const player1Name = scoresArray[0].name;
+        const player2Id = scoresArray[1].playerId;
+        const player2Name = scoresArray[1].name;
+        
+        // Determine which player slot we are
+        const isPlayer1Slot = this.playerID === player1Id;
+        
+        // Map times and determine opponent name
         let myTime, oppTime, opponentName;
         
         if (isPlayer1Slot) {
-            // We are player1 (left side) - server slot 0
+            // We are player1 (server slot 0)
             myTime = result.player1TimeMs;
             oppTime = result.player2TimeMs;
-            // Get opponent name from stored playerNames (which has actual names, not "You")
-            opponentName = this.playerNames.player2 || 'Opponent';
+            opponentName = player2Name; // Other player's name
         } else {
-            // We are player2 (right side) - server slot 1
+            // We are player2 (server slot 1)
             myTime = result.player2TimeMs;
             oppTime = result.player1TimeMs;
-            // Get opponent name from stored playerNames (which has actual names, not "You")
-            opponentName = this.playerNames.player1 || 'Opponent';
+            opponentName = player1Name; // Other player's name
         }
         
         document.getElementById('yourTime').textContent = `${(myTime / 1000).toFixed(3)}s`;
@@ -273,7 +294,7 @@ class ClickSpeedClient {
             resultTitle.textContent = '🎯 You won this round!';
             resultTitle.style.color = '#10b981';
         } else {
-            // Opponent won - use actual username from stored names
+            // Opponent won - use opponent's actual name
             resultTitle.textContent = `${opponentName} won this round`;
             resultTitle.style.color = '#ef4444';
         }
