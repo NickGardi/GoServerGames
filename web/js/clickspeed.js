@@ -56,22 +56,50 @@ class ClickSpeedClient {
 
     handleGameState(msg) {
         // Update scores and player names FIRST, before processing state
+        // The server sends scores in order: [Player 0, Player 1]
+        // We need to correctly identify which player is "You" and which is the opponent
         if (msg.scores && msg.scores.length > 0) {
-            msg.scores.forEach(score => {
-                if (score.playerId === this.playerID) {
-                    this.scores.player1 = score.score;
-                    document.getElementById('player1Score').textContent = score.score;
+            // Find which player is "You" and which is the opponent
+            const myScore = msg.scores.find(score => score.playerId === this.playerID);
+            const oppScore = msg.scores.find(score => score.playerId !== this.playerID);
+            
+            if (myScore) {
+                // Determine if we're player 1 (index 0) or player 2 (index 1) based on array position
+                const myIndex = msg.scores.findIndex(score => score.playerId === this.playerID);
+                const isPlayer1 = myIndex === 0;
+                
+                if (isPlayer1) {
+                    // We are player 1 (left side)
+                    this.scores.player1 = myScore.score;
+                    document.getElementById('player1Score').textContent = myScore.score;
                     document.getElementById('player1Name').textContent = 'You';
-                    this.playerIDs.player1 = score.playerId;
+                    this.playerIDs.player1 = myScore.playerId;
                     this.playerNames.player1 = 'You';
+                    
+                    if (oppScore) {
+                        this.scores.player2 = oppScore.score;
+                        document.getElementById('player2Score').textContent = oppScore.score;
+                        document.getElementById('player2Name').textContent = oppScore.name || 'Opponent';
+                        this.playerIDs.player2 = oppScore.playerId;
+                        this.playerNames.player2 = oppScore.name || 'Opponent';
+                    }
                 } else {
-                    this.scores.player2 = score.score;
-                    document.getElementById('player2Score').textContent = score.score;
-                    document.getElementById('player2Name').textContent = score.name || 'Opponent';
-                    this.playerIDs.player2 = score.playerId;
-                    this.playerNames.player2 = score.name || 'Opponent';
+                    // We are player 2 (right side)
+                    this.scores.player2 = myScore.score;
+                    document.getElementById('player2Score').textContent = myScore.score;
+                    document.getElementById('player2Name').textContent = 'You';
+                    this.playerIDs.player2 = myScore.playerId;
+                    this.playerNames.player2 = 'You';
+                    
+                    if (oppScore) {
+                        this.scores.player1 = oppScore.score;
+                        document.getElementById('player1Score').textContent = oppScore.score;
+                        document.getElementById('player1Name').textContent = oppScore.name || 'Opponent';
+                        this.playerIDs.player1 = oppScore.playerId;
+                        this.playerNames.player1 = oppScore.name || 'Opponent';
+                    }
                 }
-            });
+            }
         }
 
         // Create a unique key for this target position
@@ -232,13 +260,15 @@ class ClickSpeedClient {
         
         document.getElementById('resultsArea').style.display = 'block';
         
+        // Determine which player we are based on player IDs
         const isPlayer1 = this.playerID === this.playerIDs.player1;
         const myTime = isPlayer1 ? result.player1TimeMs : result.player2TimeMs;
         const oppTime = isPlayer1 ? result.player2TimeMs : result.player1TimeMs;
+        const opponentName = isPlayer1 ? this.playerNames.player2 : this.playerNames.player1;
         
         document.getElementById('yourTime').textContent = `${(myTime / 1000).toFixed(3)}s`;
         document.getElementById('opponentTime').textContent = `${(oppTime / 1000).toFixed(3)}s`;
-        document.getElementById('opponentNameResult').textContent = `${this.playerNames.player2}:`;
+        document.getElementById('opponentNameResult').textContent = `${opponentName}:`;
         
         const resultTitle = document.getElementById('resultTitle');
         // Check for tie first (winnerId === 0 or undefined)
@@ -249,7 +279,7 @@ class ClickSpeedClient {
             resultTitle.textContent = '🎯 You won this round!';
             resultTitle.style.color = '#10b981';
         } else {
-            resultTitle.textContent = `${this.playerNames.player2} won this round`;
+            resultTitle.textContent = `${opponentName} won this round`;
             resultTitle.style.color = '#ef4444';
         }
     }
