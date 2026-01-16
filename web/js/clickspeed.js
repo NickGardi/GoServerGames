@@ -361,15 +361,24 @@ class ClickSpeedClient {
             roundsList.appendChild(roundDiv);
         });
         
-        // Setup back to lobby button
+        // Setup back to lobby button - Remove old listeners first
         const backBtn = document.getElementById('backToLobbyBtn');
         if (backBtn) {
-            backBtn.onclick = () => {
+            // Clone button to remove old event listeners
+            const newBackBtn = backBtn.cloneNode(true);
+            backBtn.parentNode.replaceChild(newBackBtn, backBtn);
+            
+            // Add click handler
+            newBackBtn.onclick = () => {
                 if (this.ws) {
                     this.ws.close();
                 }
-                window.location.replace('/lobby.html');
+                window.location.href = '/lobby.html';
             };
+            
+            // Make sure button is visible
+            newBackBtn.style.display = 'block';
+            newBackBtn.style.visibility = 'visible';
         }
     }
 }
