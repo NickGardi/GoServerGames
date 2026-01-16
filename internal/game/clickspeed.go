@@ -129,11 +129,12 @@ func (r *ClickSpeedRoom) SubmitClick(playerID int, timeMs float64) bool {
 	// The delay is only for synchronization, NOT part of reaction time
 	actualTimeMs := timeMs
 	
-	// Validate: reasonable reaction time (1-10 seconds)
-	if actualTimeMs < 0 || actualTimeMs > 10000 {
-		// Invalid time, use a default
-		actualTimeMs = 10000
+	// Validate: only check for negative times (invalid)
+	if actualTimeMs < 0 {
+		// Invalid time, use 0 as minimum
+		actualTimeMs = 0
 	}
+	// No maximum time limit - players can take as long as they need
 
 	// Store submission time (actual time from round start)
 	if playerIdx == 0 {

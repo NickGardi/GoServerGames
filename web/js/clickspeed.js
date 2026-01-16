@@ -284,12 +284,18 @@ class ClickSpeedClient {
     }
 
     showGameSummary(summary) {
+        // Hide game area completely
         document.querySelector('.game-area').style.display = 'none';
         document.querySelector('.game-header').style.display = 'none';
+        
+        // Show summary - CRITICAL to ensure it's visible
         const summaryDiv = document.getElementById('gameSummary');
         if (summaryDiv) {
             summaryDiv.style.display = 'block';
             summaryDiv.style.visibility = 'visible';
+            summaryDiv.style.opacity = '1';
+        } else {
+            console.error('Game summary div not found!');
         }
 
         const isPlayer1 = this.playerID === summary.player1Id;
@@ -357,41 +363,50 @@ class ClickSpeedClient {
             roundsList.appendChild(roundDiv);
         });
         
-        // Setup back to lobby button - CRITICAL: Ensure it's visible and working
-        const backBtn = document.getElementById('backToLobbyBtn');
-        if (backBtn) {
-            // Clone button to remove old event listeners
-            const newBackBtn = backBtn.cloneNode(true);
-            backBtn.parentNode.replaceChild(newBackBtn, backBtn);
-            
-            // Add click handler
-            newBackBtn.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Back to Lobby button clicked');
-                if (this.ws) {
-                    this.ws.close();
+        // CRITICAL: Setup back to lobby button - MUST be visible and working
+        setTimeout(() => {
+            const backBtn = document.getElementById('backToLobbyBtn');
+            if (backBtn) {
+                console.log('Setting up Back to Lobby button');
+                
+                // Remove any existing listeners by cloning
+                const newBackBtn = backBtn.cloneNode(true);
+                backBtn.parentNode.replaceChild(newBackBtn, backBtn);
+                
+                // Add click handler
+                newBackBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Back to Lobby button clicked - redirecting...');
+                    if (this.ws) {
+                        this.ws.close();
+                    }
+                    window.location.href = '/lobby.html';
+                };
+                
+                // Force visibility with multiple methods
+                newBackBtn.style.display = 'block';
+                newBackBtn.style.visibility = 'visible';
+                newBackBtn.style.opacity = '1';
+                newBackBtn.disabled = false;
+                newBackBtn.hidden = false;
+                
+                // Ensure parent section is visible
+                const parentSection = newBackBtn.closest('.play-again-section');
+                if (parentSection) {
+                    parentSection.style.display = 'block';
+                    parentSection.style.visibility = 'visible';
+                    parentSection.style.opacity = '1';
                 }
-                window.location.href = '/lobby.html';
-            };
-            
-            // Force visibility
-            newBackBtn.style.display = 'block';
-            newBackBtn.style.visibility = 'visible';
-            newBackBtn.style.opacity = '1';
-            newBackBtn.disabled = false;
-            
-            // Also ensure parent is visible
-            const parentSection = newBackBtn.closest('.play-again-section');
-            if (parentSection) {
-                parentSection.style.display = 'block';
-                parentSection.style.visibility = 'visible';
+                
+                // Log for debugging
+                console.log('Back to Lobby button setup complete');
+                console.log('Button visible:', newBackBtn.offsetParent !== null);
+                console.log('Button display:', window.getComputedStyle(newBackBtn).display);
+            } else {
+                console.error('Back to Lobby button element not found in DOM!');
             }
-            
-            console.log('Back to Lobby button setup complete, visible:', newBackBtn.offsetParent !== null);
-        } else {
-            console.error('Back to Lobby button not found!');
-        }
+        }, 100); // Small delay to ensure DOM is ready
     }
 }
 
