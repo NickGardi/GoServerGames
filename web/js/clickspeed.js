@@ -55,55 +55,26 @@ class ClickSpeedClient {
     }
 
     handleGameState(msg) {
-        // Update scores and player names FIRST, before processing state
-        // The server sends scores in order: [Player 0, Player 1]
-        // We need to correctly identify which player is "You" and which is the opponent
+        // Update scores and player names - simple like speed type game
         if (msg.scores && msg.scores.length > 0) {
-            // Find which player is "You" and which is the opponent
-            const myScore = msg.scores.find(score => score.playerId === this.playerID);
-            const oppScore = msg.scores.find(score => score.playerId !== this.playerID);
+            // Server sends scores in order: [Players[0], Players[1]]
+            // Always map server's Players[0] to player1 (left) and Players[1] to player2 (right)
+            if (msg.scores[0]) {
+                const isMe = msg.scores[0].playerId === this.playerID;
+                this.scores.player1 = msg.scores[0].score;
+                document.getElementById('player1Score').textContent = msg.scores[0].score;
+                document.getElementById('player1Name').textContent = isMe ? 'You' : msg.scores[0].name;
+                this.playerIDs.player1 = msg.scores[0].playerId;
+                this.playerNames.player1 = isMe ? 'You' : msg.scores[0].name;
+            }
             
-            if (myScore) {
-                // Determine if we're player 1 (index 0) or player 2 (index 1) based on array position
-                const myIndex = msg.scores.findIndex(score => score.playerId === this.playerID);
-                const isPlayer1 = myIndex === 0;
-                
-                // Store actual player IDs and names from server (preserve real names)
-                // Server sends: [Players[0], Players[1]] in that order
-                const serverPlayer1 = msg.scores[0];
-                const serverPlayer2 = msg.scores[1];
-                
-                if (isPlayer1) {
-                    // We are player 1 (left side) - server slot 0
-                    this.scores.player1 = myScore.score;
-                    document.getElementById('player1Score').textContent = myScore.score;
-                    document.getElementById('player1Name').textContent = 'You';
-                    this.playerIDs.player1 = myScore.playerId;
-                    this.playerNames.player1 = 'You'; // Display "You" but we know the real name
-                    
-                    if (serverPlayer2) {
-                        this.scores.player2 = serverPlayer2.score;
-                        document.getElementById('player2Score').textContent = serverPlayer2.score;
-                        document.getElementById('player2Name').textContent = serverPlayer2.name || 'Opponent';
-                        this.playerIDs.player2 = serverPlayer2.playerId;
-                        this.playerNames.player2 = serverPlayer2.name || 'Opponent';
-                    }
-                } else {
-                    // We are player 2 (right side) - server slot 1
-                    this.scores.player2 = myScore.score;
-                    document.getElementById('player2Score').textContent = myScore.score;
-                    document.getElementById('player2Name').textContent = 'You';
-                    this.playerIDs.player2 = myScore.playerId;
-                    this.playerNames.player2 = 'You'; // Display "You" but we know the real name
-                    
-                    if (serverPlayer1) {
-                        this.scores.player1 = serverPlayer1.score;
-                        document.getElementById('player1Score').textContent = serverPlayer1.score;
-                        document.getElementById('player1Name').textContent = serverPlayer1.name || 'Opponent';
-                        this.playerIDs.player1 = serverPlayer1.playerId;
-                        this.playerNames.player1 = serverPlayer1.name || 'Opponent';
-                    }
-                }
+            if (msg.scores[1]) {
+                const isMe = msg.scores[1].playerId === this.playerID;
+                this.scores.player2 = msg.scores[1].score;
+                document.getElementById('player2Score').textContent = msg.scores[1].score;
+                document.getElementById('player2Name').textContent = isMe ? 'You' : msg.scores[1].name;
+                this.playerIDs.player2 = msg.scores[1].playerId;
+                this.playerNames.player2 = isMe ? 'You' : msg.scores[1].name;
             }
         }
 
@@ -290,25 +261,11 @@ class ClickSpeedClient {
         document.getElementById('opponentNameResult').textContent = `${opponentName}:`;
         
         const resultTitle = document.getElementById('resultTitle');
-        // The winnerId from server is the player ID who won (lowest time wins)
-        // Verify winner based on times as well as winnerId
-        let actualWinner;
-        if (result.player1TimeMs < result.player2TimeMs) {
-            // Player 1 (slot 0) has faster time
-            actualWinner = this.playerIDs.player1;
-        } else if (result.player2TimeMs < result.player1TimeMs) {
-            // Player 2 (slot 1) has faster time
-            actualWinner = this.playerIDs.player2;
-        } else {
-            // Tie
-            actualWinner = 0;
-        }
-        
-        // Use actual winner based on times (more reliable than just trusting winnerId)
-        if (actualWinner === 0 || !actualWinner) {
+        // Use server's winnerId directly (don't recalculate) - ensures both clients show same result
+        if (!result.winnerId || result.winnerId === 0) {
             resultTitle.textContent = "It's a tie!";
             resultTitle.style.color = '#f59e0b';
-        } else if (actualWinner === this.playerID) {
+        } else if (result.winnerId === this.playerID) {
             resultTitle.textContent = '🎯 You won this round!';
             resultTitle.style.color = '#10b981';
         } else {
@@ -368,18 +325,9 @@ class ClickSpeedClient {
             const myTime = isPlayer1 ? round.player1TimeMs : round.player2TimeMs;
             const oppTime = isPlayer1 ? round.player2TimeMs : round.player1TimeMs;
             
-            // Determine winner based on actual times (more reliable)
-            let roundWinner;
-            if (round.player1TimeMs < round.player2TimeMs) {
-                roundWinner = this.playerIDs.player1;
-            } else if (round.player2TimeMs < round.player1TimeMs) {
-                roundWinner = this.playerIDs.player2;
-            } else {
-                roundWinner = 0; // Tie
-            }
-            
-            const iWon = roundWinner === this.playerID;
-            const theyWon = roundWinner > 0 && roundWinner !== this.playerID;
+            // Use server's winnerId directly (don't recalculate) - ensures both clients show same result
+            const iWon = round.winnerId === this.playerID;
+            const theyWon = round.winnerId > 0 && round.winnerId !== this.playerID;
             const winnerText = iWon ? 'You' : (theyWon ? opponentName : 'Tie');
             
             roundDiv.innerHTML = `
