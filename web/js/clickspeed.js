@@ -55,7 +55,7 @@ class ClickSpeedClient {
     }
 
     handleGameState(msg) {
-        // Update scores and player names - simple like speed type game
+        // Update scores and player names - ensure each player sees personalized view
         if (msg.scores && msg.scores.length > 0) {
             // Server sends scores in order: [Players[0], Players[1]]
             // Always map server's Players[0] to player1 (left) and Players[1] to player2 (right)
@@ -63,9 +63,10 @@ class ClickSpeedClient {
                 const isMe = msg.scores[0].playerId === this.playerID;
                 this.scores.player1 = msg.scores[0].score;
                 document.getElementById('player1Score').textContent = msg.scores[0].score;
+                // Show "You" for current player, actual name for opponent
                 document.getElementById('player1Name').textContent = isMe ? 'You' : msg.scores[0].name;
                 this.playerIDs.player1 = msg.scores[0].playerId;
-                // Store actual name (not "You") for use in results
+                // Store actual name (not "You") for use in results - CRITICAL for correct opponent name
                 this.playerNames.player1 = msg.scores[0].name;
             }
             
@@ -73,9 +74,10 @@ class ClickSpeedClient {
                 const isMe = msg.scores[1].playerId === this.playerID;
                 this.scores.player2 = msg.scores[1].score;
                 document.getElementById('player2Score').textContent = msg.scores[1].score;
+                // Show "You" for current player, actual name for opponent
                 document.getElementById('player2Name').textContent = isMe ? 'You' : msg.scores[1].name;
                 this.playerIDs.player2 = msg.scores[1].playerId;
-                // Store actual name (not "You") for use in results
+                // Store actual name (not "You") for use in results - CRITICAL for correct opponent name
                 this.playerNames.player2 = msg.scores[1].name;
             }
         }
@@ -245,27 +247,17 @@ class ClickSpeedClient {
         let myTime, oppTime, opponentName;
         
         if (isPlayer1Slot) {
-            // We are player1 (left side)
+            // We are player1 (left side) - server slot 0
             myTime = result.player1TimeMs;
             oppTime = result.player2TimeMs;
-            // Get opponent name directly from the header (which has the actual username)
-            const oppNameElement = document.getElementById('player2Name');
-            opponentName = oppNameElement ? oppNameElement.textContent : 'Opponent';
-            // If it says "You", that means we're incorrectly mapped - get from stored names
-            if (opponentName === 'You') {
-                opponentName = this.playerNames.player2 || 'Opponent';
-            }
+            // Get opponent name from stored playerNames (which has actual names, not "You")
+            opponentName = this.playerNames.player2 || 'Opponent';
         } else {
-            // We are player2 (right side)
+            // We are player2 (right side) - server slot 1
             myTime = result.player2TimeMs;
             oppTime = result.player1TimeMs;
-            // Get opponent name directly from the header (which has the actual username)
-            const oppNameElement = document.getElementById('player1Name');
-            opponentName = oppNameElement ? oppNameElement.textContent : 'Opponent';
-            // If it says "You", that means we're incorrectly mapped - get from stored names
-            if (opponentName === 'You') {
-                opponentName = this.playerNames.player1 || 'Opponent';
-            }
+            // Get opponent name from stored playerNames (which has actual names, not "You")
+            opponentName = this.playerNames.player1 || 'Opponent';
         }
         
         document.getElementById('yourTime').textContent = `${(myTime / 1000).toFixed(3)}s`;
@@ -273,7 +265,7 @@ class ClickSpeedClient {
         document.getElementById('opponentNameResult').textContent = `${opponentName}:`;
         
         const resultTitle = document.getElementById('resultTitle');
-        // Use server's winnerId directly (don't recalculate) - ensures both clients show same result
+        // Use server's winnerId directly - ensures both clients show same result
         if (!result.winnerId || result.winnerId === 0) {
             resultTitle.textContent = "It's a tie!";
             resultTitle.style.color = '#f59e0b';
@@ -281,7 +273,7 @@ class ClickSpeedClient {
             resultTitle.textContent = '🎯 You won this round!';
             resultTitle.style.color = '#10b981';
         } else {
-            // Opponent won - use actual username
+            // Opponent won - use actual username from stored names
             resultTitle.textContent = `${opponentName} won this round`;
             resultTitle.style.color = '#ef4444';
         }
@@ -294,7 +286,11 @@ class ClickSpeedClient {
     showGameSummary(summary) {
         document.querySelector('.game-area').style.display = 'none';
         document.querySelector('.game-header').style.display = 'none';
-        document.getElementById('gameSummary').style.display = 'block';
+        const summaryDiv = document.getElementById('gameSummary');
+        if (summaryDiv) {
+            summaryDiv.style.display = 'block';
+            summaryDiv.style.visibility = 'visible';
+        }
 
         const isPlayer1 = this.playerID === summary.player1Id;
         const myName = isPlayer1 ? summary.player1Name : summary.player2Name;
@@ -361,7 +357,7 @@ class ClickSpeedClient {
             roundsList.appendChild(roundDiv);
         });
         
-        // Setup back to lobby button - Remove old listeners first
+        // Setup back to lobby button - CRITICAL: Ensure it's visible and working
         const backBtn = document.getElementById('backToLobbyBtn');
         if (backBtn) {
             // Clone button to remove old event listeners
@@ -369,16 +365,32 @@ class ClickSpeedClient {
             backBtn.parentNode.replaceChild(newBackBtn, backBtn);
             
             // Add click handler
-            newBackBtn.onclick = () => {
+            newBackBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Back to Lobby button clicked');
                 if (this.ws) {
                     this.ws.close();
                 }
                 window.location.href = '/lobby.html';
             };
             
-            // Make sure button is visible
+            // Force visibility
             newBackBtn.style.display = 'block';
             newBackBtn.style.visibility = 'visible';
+            newBackBtn.style.opacity = '1';
+            newBackBtn.disabled = false;
+            
+            // Also ensure parent is visible
+            const parentSection = newBackBtn.closest('.play-again-section');
+            if (parentSection) {
+                parentSection.style.display = 'block';
+                parentSection.style.visibility = 'visible';
+            }
+            
+            console.log('Back to Lobby button setup complete, visible:', newBackBtn.offsetParent !== null);
+        } else {
+            console.error('Back to Lobby button not found!');
         }
     }
 }
