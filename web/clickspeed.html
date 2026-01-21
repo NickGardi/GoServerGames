@@ -69,10 +69,7 @@
 </head>
 <body class="dark-mode">
     <div class="game-container speedtype">
-        <div class="game-header" style="position: relative;">
-            <div style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
-                <button id="backToLobbyBtnHeader" class="ready-btn" style="font-size: 14px; padding: 8px 16px;">Back to Lobby</button>
-            </div>
+        <div class="game-header">
             <div class="score-display">
                 <div class="player-score">
                     <span class="player-name" id="player1Name">Player 1</span>
@@ -144,6 +141,11 @@
                     <button id="backToLobbyBtn" class="ready-btn">Back to Lobby</button>
                 </div>
             </div>
+        </div>
+        
+        <!-- Back to Lobby button - always visible at bottom center -->
+        <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;">
+            <button id="backToLobbyBtnHeader" class="ready-btn">Back to Lobby</button>
         </div>
     </div>
 
